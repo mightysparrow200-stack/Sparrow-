@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useCoOp } from '../CoOpState';
 
 const PRODUCTS = [
@@ -10,7 +11,7 @@ const PRODUCTS = [
   { id: 4, name: 'Heavy-Duty Irrigation Hose', category: 'Tools', price: 85.00, desc: 'Reinforced 50m weather-proof drip irrigation line.', img: '💧' },
 ];
 
-export default function ShopPage() {
+function ShopPage() {
   const { isMember, setIsMember, memberBalance, cart, addToCart, removeFromCart, checkout } = useCoOp();
   const [checkoutStatus, setCheckoutStatus] = useState<{ success?: boolean; message?: string }>({});
 
@@ -183,3 +184,5 @@ export default function ShopPage() {
     </div>
   );
 }
+
+export default dynamic(() => Promise.resolve(ShopPage), { ssr: false });
