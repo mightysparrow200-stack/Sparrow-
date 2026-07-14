@@ -28,7 +28,6 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} ${playfair.variable}`}>
       <body className="bg-slate-50 text-slate-900 font-sans min-h-screen flex flex-col justify-between selection:bg-coopGold/30">
         
-        {/* WE WRAP THE ENTIRE BODY IN COOPPROVIDER */}
         <CoOpProvider>
           
           {/* GLOBAL NAVIGATION HEADER */}
@@ -46,7 +45,7 @@ export default function RootLayout({
                 </div>
               </Link>
 
-              {/* Navigation Links */}
+              {/* Secure Public Navigation (Admin Removed) */}
               <nav className="flex items-center gap-1 sm:gap-2">
                 <Link 
                   href="/" 
@@ -65,12 +64,6 @@ export default function RootLayout({
                   className="text-xs font-semibold px-2.5 py-1.5 rounded-lg text-gray-600 hover:text-coopGreen hover:bg-gray-100 transition"
                 >
                   Portal
-                </Link>
-                <Link 
-                  href="/admin" 
-                  className="text-xs font-semibold px-2.5 py-1.5 rounded-lg text-gray-600 hover:text-coopGreen hover:bg-gray-100 transition"
-                >
-                  Admin
                 </Link>
               </nav>
 
