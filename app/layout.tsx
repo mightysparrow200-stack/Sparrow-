@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { Inter, Playfair_Display } from 'next/font/google';
-import Link from 'next/link';
+import Header from './Header';
 import { CoOpProvider } from './CoOpState';
 import './globals.css';
 
@@ -29,46 +29,8 @@ export default function RootLayout({
       <body className="bg-slate-50 text-slate-900 font-sans min-h-screen flex flex-col justify-between selection:bg-coopGold/30">
         
         <CoOpProvider>
-          
-          {/* GLOBAL NAVIGATION HEADER */}
-          <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-150 px-4 py-3">
-            <div className="max-w-5xl mx-auto flex items-center justify-between">
-              
-              {/* Logo Group */}
-              <Link href="/" className="flex items-center gap-2 group">
-                <span className="bg-coopGreen text-coopGold w-8 h-8 rounded-lg flex items-center justify-center font-serif font-bold text-sm shadow-sm group-hover:scale-105 transition">
-                  MS
-                </span>
-                <div className="leading-tight">
-                  <span className="block text-xs font-bold text-slate-900 tracking-tight">Mighty Sparrow Co-op</span>
-                  <span className="block text-[10px] text-gray-400">Alumni Society</span>
-                </div>
-              </Link>
-
-              {/* Secure Public Navigation (Admin Removed) */}
-              <nav className="flex items-center gap-1 sm:gap-2">
-                <Link 
-                  href="/" 
-                  className="text-xs font-semibold px-2.5 py-1.5 rounded-lg text-gray-600 hover:text-coopGreen hover:bg-gray-100 transition"
-                >
-                  Home
-                </Link>
-                <Link 
-                  href="/shop" 
-                  className="text-xs font-semibold px-2.5 py-1.5 rounded-lg text-gray-600 hover:text-coopGreen hover:bg-gray-100 transition"
-                >
-                  Marketplace
-                </Link>
-                <Link 
-                  href="/dashboard" 
-                  className="text-xs font-semibold px-2.5 py-1.5 rounded-lg text-gray-600 hover:text-coopGreen hover:bg-gray-100 transition"
-                >
-                  Portal
-                </Link>
-              </nav>
-
-            </div>
-          </header>
+          {/* Imported Dynamic Header Component */}
+          <Header />
 
           {/* PAGE CONTENT CONTAINER */}
           <main className="flex-grow">
@@ -82,7 +44,6 @@ export default function RootLayout({
               <p className="text-gray-500">Empowering members through pooled capital and shared agricultural excellence.</p>
             </div>
           </footer>
-
         </CoOpProvider>
 
       </body>
