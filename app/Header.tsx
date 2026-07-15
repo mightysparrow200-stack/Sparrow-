@@ -1,64 +1,49 @@
 'use client';
 
 import Link from 'next/link';
-import { useCoOp } from './CoOpState';
+import OnboardDropdown from '@/components/OnboardDropdown';
 
 export default function Header() {
-  const context = useCoOp();
-  
-  // Calculate total items in cart (sum of quantities)
-  const cartItemCount = context?.cart.reduce((sum, item) => sum + item.quantity, 0) || 0;
-
   return (
-    <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-150 px-4 py-3">
-      <div className="max-w-5xl mx-auto flex items-center justify-between">
+    <header className="border-b border-slate-100 bg-white/80 backdrop-blur-md sticky top-0 z-40">
+      <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
         
-        {/* Logo Group */}
-        <Link href="/" className="flex items-center gap-2 group">
-          <span className="bg-coopGreen text-coopGold w-8 h-8 rounded-lg flex items-center justify-center font-serif font-bold text-sm shadow-sm group-hover:scale-105 transition">
-            MS
-          </span>
-          <div className="leading-tight">
-            <span className="block text-xs font-bold text-slate-900 tracking-tight">Mighty Sparrow Co-op</span>
-            <span className="block text-[10px] text-gray-400">Alumni Society</span>
+        {/* Brand Logo & Identity */}
+        <Link href="/" className="flex items-center gap-2">
+          <span className="text-xl">🐦</span>
+          <div className="flex flex-col">
+            <span className="font-serif font-bold text-sm text-slate-950 tracking-tight leading-none">
+              Mighty Sparrow
+            </span>
+            <span className="text-[9px] font-bold uppercase tracking-widest text-emerald-600 mt-1">
+              Alumni Co-op
+            </span>
           </div>
         </Link>
 
-        {/* Navigation & Cart Badge */}
-        <div className="flex items-center gap-4">
-          <nav className="flex items-center gap-1 sm:gap-2">
-            <Link 
-              href="/" 
-              className="text-xs font-semibold px-2.5 py-1.5 rounded-lg text-gray-600 hover:text-coopGreen hover:bg-gray-100 transition"
-            >
-              Home
-            </Link>
-            <Link 
-              href="/shop" 
-              className="text-xs font-semibold px-2.5 py-1.5 rounded-lg text-gray-600 hover:text-coopGreen hover:bg-gray-100 transition"
-            >
-              Marketplace
-            </Link>
-            <Link 
-              href="/dashboard" 
-              className="text-xs font-semibold px-2.5 py-1.5 rounded-lg text-gray-600 hover:text-coopGreen hover:bg-gray-100 transition"
-            >
-              Portal
-            </Link>
-          </nav>
+        {/* Desktop Centered Secondary Nav Links */}
+        <nav className="hidden md:flex items-center gap-6">
+          <Link href="/shop" className="text-xs text-slate-500 hover:text-slate-950 font-semibold transition">
+            Marketplace
+          </Link>
+          <Link href="/dashboard" className="text-xs text-slate-500 hover:text-slate-950 font-semibold transition">
+            Savings
+          </Link>
+          <Link href="/wallet" className="text-xs text-slate-500 hover:text-slate-950 font-semibold transition">
+            Wallet
+          </Link>
+        </nav>
 
-          {/* 🛒 Dynamic Cart Icon Link */}
-          <Link 
-            href="/cart" 
-            className="relative p-2 rounded-xl border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition active:scale-95"
-            aria-label="Shopping Cart"
+        {/* Global Action Panel */}
+        <div className="flex items-center gap-3">
+          {/* Quick-Drop Navigation Menu containing all user/membership pages */}
+          <OnboardDropdown />
+          
+          <Link
+            href="/dashboard"
+            className="bg-slate-950 text-white text-[11px] font-bold px-4 py-2 rounded-xl hover:bg-slate-800 transition hidden sm:inline-block"
           >
-            <span className="text-base">🛒</span>
-            {cartItemCount > 0 && (
-              <span className="absolute -top-1 -right-1.5 bg-red-500 text-white font-extrabold text-[9px] w-4 h-4 rounded-full flex items-center justify-center animate-pulse">
-                {cartItemCount}
-              </span>
-            )}
+            My Account
           </Link>
         </div>
 
