@@ -13,6 +13,47 @@ export default function WalletPage() {
   const [balance, setBalance] = useState(45500); // ₦45,500.00
   const [savingsBalance, setSavingsBalance] = useState(120000); // ₦120,000.00
   const [transactions, setTransactions] = useState(INITIAL_TRANSACTIONS);
+  
+  // Modal & Input States
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [transferAmount, setTransferAmount] = useState('');
+  const [error, setError] = useState('');
+
+  // Handle the Transfer from Wallet to Locked Savings
+  const handleTransferToSavings = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    const amount = parseFloat(transferAmount);
+
+    if (isNaN(amount) || amount <= 0) {
+      setError('Please enter a valid transfer amount.');
+      return;
+    }
+
+    if (amount > balance) {
+      setError('Insufficient available wallet balance.');
+      return;
+    }
+
+    // Process Transfer
+    setBalance((prev) => prev - amount);
+    setSavingsBalance((prev) => prev + amount);
+    
+    // Add to transaction ledger
+    const newTx = {
+      id: (transactions.length + 1).toString(),
+      type: 'debit',
+      desc: 'Transferred to Locked Savings',
+      amount: amount,
+      date: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+      status: 'Completed'
+    };
+
+    setTransactions([newTx, ...transactions]);
+    setTransferAmount('');
+    setIsModalOpen(false);
+  };
 
   return (
     <div className="min-h-screen bg-slate-50/50 pb-12 font-sans">
@@ -45,14 +86,20 @@ export default function WalletPage() {
             
             {/* Quick Actions */}
             <div className="grid grid-cols-3 gap-2 mt-6">
-              <button className="flex flex-col items-center justify-center p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100/70 text-emerald-700 transition gap-1">
+              <button className="flex flex-col items-center justify-center p-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 transition gap-1">
                 <span className="text-lg">📥</span>
                 <span className="text-[10px] font-bold">Fund Wallet</span>
               </button>
-              <button className="flex flex-col items-center justify-center p-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 transition gap-1">
-                <span className="text-lg">📤</span>
-                <span className="text-[10px] font-bold">Transfer</span>
+              
+              {/* Trigger Modal to Lock Cash to Savings */}
+              <button 
+                onClick={() => setIsModalOpen(true)}
+                className="flex flex-col items-center justify-center p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100/70 text-emerald-700 transition gap-1"
+              >
+                <span className="text-lg">🔒</span>
+                <span className="text-[10px] font-bold">Save Cash</span>
               </button>
+
               <button className="flex flex-col items-center justify-center p-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 transition gap-1">
                 <span className="text-lg">💸</span>
                 <span className="text-[10px] font-bold">Withdraw</span>
@@ -79,8 +126,11 @@ export default function WalletPage() {
               </p>
             </div>
 
-            <button className="w-full mt-6 py-2.5 bg-white text-emerald-800 text-xs font-bold rounded-xl hover:bg-emerald-50 transition">
-              View Savings Planner
+            <button 
+              onClick={() => setIsModalOpen(true)}
+              className="w-full mt-6 py-2.5 bg-white text-emerald-800 text-xs font-bold rounded-xl hover:bg-emerald-50 transition"
+            >
+              + Add to Savings
             </button>
           </div>
 
@@ -128,6 +178,65 @@ export default function WalletPage() {
         </div>
 
       </div>
+
+      {/* --- SAVE CASH / CO-OP INVESTMENT TRANSFER MODAL --- */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-2xl border border-slate-100 shadow-2xl p-6 relative animate-in fade-in zoom-in-95 duration-150">
+            
+            <h2 className="text-base font-bold text-slate-900 font-serif">Deposit into Locked Savings</h2>
+            <p className="text-[11px] text-slate-500 mt-1">
+              Transfer funds from your liquid wallet balance to earn 12% dividends on your permanent co-op stake.
+            </p>
+
+            <form onSubmit={handleTransferToSavings} className="mt-4 space-y-4">
+              
+              {/* Show available wallet balance for quick reference */}
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex justify-between items-center text-xs">
+                <span className="text-slate-500 font-medium">Available Balance:</span>
+                <span className="font-bold text-slate-900">₦{balance.toLocaleString()}</span>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                  Amount to Lock (₦)
+                </label>
+                <input
+                  type="number"
+                  required
+                  placeholder="e.g. 10000"
+                  value={transferAmount}
+                  onChange={(e) => setTransferAmount(e.target.value)}
+                  className="w-full text-sm font-semibold text-slate-900 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition"
+                />
+                {error && <p className="text-[11px] text-rose-500 font-semibold mt-1">{error}</p>}
+              </div>
+
+              {/* Modal Actions */}
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsModalOpen(false);
+                    setError('');
+                    setTransferAmount('');
+                  }}
+                  className="flex-1 py-2.5 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm shadow-emerald-600/10 transition"
+                >
+                  Confirm Transfer
+                </button>
+              </div>
+
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
-                  }
+}
