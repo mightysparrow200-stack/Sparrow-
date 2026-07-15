@@ -25,7 +25,7 @@ const CoOpContext = createContext<CoOpContextType | undefined>(undefined);
 
 export function CoOpProvider({ children }: { children: React.ReactNode }) {
   const [isMember, setIsMember] = useState<boolean>(true);
-  const [memberBalance, setMemberBalance] = useState<number>(1420.50);
+  const [memberBalance, setMemberBalance] = useState<number>(150000.00); // ₦150,000 starting balance
   const [cart, setCart] = useState<CartItem[]>([]);
 
   useEffect(() => {
@@ -72,13 +72,13 @@ export function CoOpProvider({ children }: { children: React.ReactNode }) {
       if (memberBalance >= total) {
         updateBalance(memberBalance - total);
         clearCart();
-        return { success: true, message: `Successfully checked out! Paid $${total.toFixed(2)} using your Co-op Savings.` };
+        return { success: true, message: `Successfully checked out! Paid ₦${total.toLocaleString('en-NG', { minimumFractionDigits: 2 })} using your Co-op Savings.` };
       } else {
         return { success: false, message: 'Insufficient funds in your cooperative wallet.' };
       }
     } else {
       clearCart();
-      return { success: true, message: `Order placed successfully! Redirecting to standard payment processing for $${total.toFixed(2)}.` };
+      return { success: true, message: `Order placed successfully! Redirecting to standard bank transfer gateway for ₦${total.toLocaleString('en-NG', { minimumFractionDigits: 2 })}.` };
     }
   };
 
@@ -101,6 +101,5 @@ export function CoOpProvider({ children }: { children: React.ReactNode }) {
 
 export function useCoOp() {
   const context = useContext(CoOpContext);
-  if (!context) throw new Error('useCoOp must be used within a CoOpProvider');
   return context;
-        }
+}
