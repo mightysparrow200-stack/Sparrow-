@@ -36,9 +36,9 @@ export default function OnboardDropdown() {
         </svg>
       </button>
 
-      {/* Dropdown Menu (No Admin Routes) */}
+      {/* Dropdown Menu (Floats cleanly over content) */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-72 origin-top-right bg-white border border-slate-100 rounded-2xl shadow-xl ring-1 ring-black/5 z-50 divide-y divide-slate-100 overflow-hidden">
+        <div className="absolute right-0 top-full mt-2 w-72 origin-top-right bg-white border border-slate-100 rounded-2xl shadow-xl ring-1 ring-black/5 z-50 divide-y divide-slate-100 overflow-hidden">
           
           {/* Section 1: Core Portal Dashboards */}
           <div className="p-2 space-y-1">
@@ -118,7 +118,7 @@ export default function OnboardDropdown() {
             >
               <span className="text-base">🎓</span>
               <div>
-                <span className="block text-xs font-bold text-slate-900 group-hover:text-coopGreen">
+                <span className="block text-xs font-bold text-slate-900 group-hover:text-emerald-600">
                   Alumni Registration
                 </span>
                 <span className="block text-[10px] text-slate-400">Apply to become a cooperative member</span>
@@ -131,7 +131,7 @@ export default function OnboardDropdown() {
             >
               <span className="text-base">🤝</span>
               <div>
-                <span className="block text-xs font-bold text-slate-900 group-hover:text-coopGold">
+                <span className="block text-xs font-bold text-slate-900 group-hover:text-amber-500">
                   Partner Vendor
                 </span>
                 <span className="block text-[10px] text-slate-400">Apply to sell general goods to members</span>
@@ -143,4 +143,4 @@ export default function OnboardDropdown() {
       )}
     </div>
   );
-                }
+}
