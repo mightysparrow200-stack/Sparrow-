@@ -5,22 +5,32 @@ import dynamic from 'next/dynamic';
 import { useCoOp } from '../CoOpState';
 
 const PRODUCTS = [
-  { id: 1, name: 'Premium Organic Fertilizer', category: 'Supplies', price: 45.00, desc: 'Eco-friendly crop nourishment, formulated for high yield.', img: '🌱' },
-  { id: 2, name: 'High-Yield Maize Seeds', category: 'Seeds', price: 25.00, desc: 'Drought-resistant variety optimized for local soils.', img: '🌽' },
-  { id: 3, name: 'Handheld Soil pH Tester', category: 'Tools', price: 18.00, desc: 'Instant soil reading to keep nutrients balanced.', img: '📊' },
-  { id: 4, name: 'Heavy-Duty Irrigation Hose', category: 'Tools', price: 85.00, desc: 'Reinforced 50m weather-proof drip irrigation line.', img: '💧' },
+  { id: 1, name: 'Co-Op Tech Smart Backpack', category: 'Gear', price: 75.00, desc: 'Water-resistant, anti-theft design with a built-in USB charging port.', img: '🎒' },
+  { id: 2, name: 'Eco-Insulated Steel Flask', category: 'Lifestyle', price: 28.00, desc: 'Double-walled vacuum insulation. Keeps drinks cold for 24h or hot for 12h.', img: '🥤' },
+  { id: 3, name: 'Alumni Edition Mechanical Keyboard', category: 'Tech', price: 120.00, desc: 'Tactile blue switches, custom alumni-themed keycaps, and RGB backlighting.', img: '⌨️' },
+  { id: 4, name: 'Sparrow Dark Roast Coffee Beans', category: 'Consumables', price: 18.00, desc: 'Direct-trade premium whole beans. Roasted locally and certified organic.', img: '☕' },
 ];
 
 function ShopPage() {
-  const { isMember, setIsMember, memberBalance, cart, addToCart, removeFromCart, checkout } = useCoOp();
+  const context = useCoOp();
   const [checkoutStatus, setCheckoutStatus] = useState<{ success?: boolean; message?: string }>({});
 
+  // 🛡️ CONTEXT GUARD: Show loading spinner if context is preparing
+  if (!context) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
+        <div className="w-8 h-8 border-4 border-coopGreen border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-xs text-gray-500 font-medium">Loading Marketplace...</p>
+      </div>
+    );
+  }
+
+  const { isMember, setIsMember, memberBalance, cart, addToCart, removeFromCart, checkout } = context;
   const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   const handleCheckout = () => {
     const result = checkout();
     setCheckoutStatus(result);
-    // Clear status message after 5 seconds
     setTimeout(() => setCheckoutStatus({}), 5000);
   };
 
@@ -32,11 +42,11 @@ function ShopPage() {
         <div>
           <h1 className="text-2xl md:text-3xl font-serif text-slate-950">Cooperative Marketplace</h1>
           <p className="text-sm text-gray-500 mt-1">
-            Access high-grade agricultural supplies. Member-funded inventory with active co-op discounts.
+            Browse our catalog of general goods and premium products. Unlock co-op discounts on every item.
           </p>
         </div>
 
-        {/* MEMBER / GUEST TOGGLE SWITCH */}
+        {/* MEMBER / GUEST TOGGLE */}
         <div className="bg-white border border-gray-200 p-1.5 rounded-xl flex items-center gap-1 shadow-sm w-fit">
           <button
             onClick={() => setIsMember(true)}
@@ -57,7 +67,7 @@ function ShopPage() {
         </div>
       </div>
 
-      {/* SYSTEM PRICING NOTIFICATION */}
+      {/* PRICING STAT NOTIFICATION */}
       <div className={`p-3.5 rounded-xl border mb-8 text-xs flex items-center justify-between ${
         isMember 
           ? 'bg-green-50/50 border-green-150 text-green-800' 
@@ -67,8 +77,8 @@ function ShopPage() {
           <span>{isMember ? '✨' : '🛍️'}</span>
           <span>
             {isMember 
-              ? 'Active Member status detected! A 15% discount has been applied to all items.' 
-              : 'Browsing as Guest. You can unlock 15% discounts and pay with portal savings by registering as a member.'}
+              ? 'Active Member status detected! A 15% discount has been applied to all general goods.' 
+              : 'Browsing as Guest. Register as an alumni member to unlock 15% co-op discounts.'}
           </span>
         </div>
         {isMember && (
@@ -78,12 +88,12 @@ function ShopPage() {
         )}
       </div>
 
-      {/* TWO COLUMN GRID: SHOP AND CART */}
+      {/* TWO COLUMN GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* PRODUCTS COLUMN */}
         <div className="lg:col-span-2 space-y-4">
-          <h2 className="font-serif text-lg text-slate-950 font-semibold mb-2">Available Supplies</h2>
+          <h2 className="font-serif text-lg text-slate-950 font-semibold mb-2">Featured Goods</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {PRODUCTS.map((product) => {
               const displayPrice = isMember ? product.price * 0.85 : product.price;
@@ -107,7 +117,7 @@ function ShopPage() {
                       onClick={() => addToCart(product)}
                       className="bg-coopGreen text-white text-xs font-semibold px-4 py-2 rounded-xl hover:bg-coopGreen-dark active:scale-95 transition shadow-sm"
                     >
-                      Buy +
+                      Add +
                     </button>
                   </div>
                 </div>
