@@ -14,12 +14,24 @@ export default function WalletPage() {
   const [savingsBalance, setSavingsBalance] = useState(120000); // ₦120,000.00
   const [transactions, setTransactions] = useState(INITIAL_TRANSACTIONS);
   
-  // Modal & Input States
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  // Modal States
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+  const [isFundModalOpen, setIsFundModalOpen] = useState(false);
+  
+  // Form States
   const [transferAmount, setTransferAmount] = useState('');
+  const [fundAmount, setFundAmount] = useState('50000'); // Default mock funding amount
   const [error, setError] = useState('');
+  const [copied, setCopied] = useState(false);
 
-  // Handle the Transfer from Wallet to Locked Savings
+  // Handle Mock Copy Button
+  const handleCopy = () => {
+    navigator.clipboard.writeText('1023456789');
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  // Handle saving cash (Wallet -> Locked Savings)
   const handleTransferToSavings = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -36,11 +48,9 @@ export default function WalletPage() {
       return;
     }
 
-    // Process Transfer
     setBalance((prev) => prev - amount);
     setSavingsBalance((prev) => prev + amount);
     
-    // Add to transaction ledger
     const newTx = {
       id: (transactions.length + 1).toString(),
       type: 'debit',
@@ -52,7 +62,29 @@ export default function WalletPage() {
 
     setTransactions([newTx, ...transactions]);
     setTransferAmount('');
-    setIsModalOpen(false);
+    setIsSaveModalOpen(false);
+  };
+
+  // Mock Funding the wallet (Simulating receiving bank notification)
+  const handleMockFunding = (e: React.FormEvent) => {
+    e.preventDefault();
+    const amount = parseFloat(fundAmount);
+
+    if (isNaN(amount) || amount <= 0) return;
+
+    setBalance((prev) => prev + amount);
+
+    const newTx = {
+      id: (transactions.length + 1).toString(),
+      type: 'credit',
+      desc: 'Wallet Funding via UBA Transfer',
+      amount: amount,
+      date: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+      status: 'Completed'
+    };
+
+    setTransactions([newTx, ...transactions]);
+    setIsFundModalOpen(false);
   };
 
   return (
@@ -86,14 +118,18 @@ export default function WalletPage() {
             
             {/* Quick Actions */}
             <div className="grid grid-cols-3 gap-2 mt-6">
-              <button className="flex flex-col items-center justify-center p-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 transition gap-1">
+              {/* Trigger Fund Wallet Modal */}
+              <button 
+                onClick={() => setIsFundModalOpen(true)}
+                className="flex flex-col items-center justify-center p-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 transition gap-1"
+              >
                 <span className="text-lg">📥</span>
                 <span className="text-[10px] font-bold">Fund Wallet</span>
               </button>
               
-              {/* Trigger Modal to Lock Cash to Savings */}
+              {/* Trigger Save Cash Modal */}
               <button 
-                onClick={() => setIsModalOpen(true)}
+                onClick={() => setIsSaveModalOpen(true)}
                 className="flex flex-col items-center justify-center p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100/70 text-emerald-700 transition gap-1"
               >
                 <span className="text-lg">🔒</span>
@@ -127,7 +163,7 @@ export default function WalletPage() {
             </div>
 
             <button 
-              onClick={() => setIsModalOpen(true)}
+              onClick={() => setIsSaveModalOpen(true)}
               className="w-full mt-6 py-2.5 bg-white text-emerald-800 text-xs font-bold rounded-xl hover:bg-emerald-50 transition"
             >
               + Add to Savings
@@ -179,19 +215,17 @@ export default function WalletPage() {
 
       </div>
 
-      {/* --- SAVE CASH / CO-OP INVESTMENT TRANSFER MODAL --- */}
-      {isModalOpen && (
+      {/* --- SAVE CASH MODAL --- */}
+      {isSaveModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-md rounded-2xl border border-slate-100 shadow-2xl p-6 relative animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white w-full max-w-md rounded-2xl border border-slate-100 shadow-2xl p-6 relative">
             
             <h2 className="text-base font-bold text-slate-900 font-serif">Deposit into Locked Savings</h2>
             <p className="text-[11px] text-slate-500 mt-1">
-              Transfer funds from your liquid wallet balance to earn 12% dividends on your permanent co-op stake.
+              Transfer funds from your liquid wallet to earn 12% dividends on your permanent co-op stake.
             </p>
 
             <form onSubmit={handleTransferToSavings} className="mt-4 space-y-4">
-              
-              {/* Show available wallet balance for quick reference */}
               <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex justify-between items-center text-xs">
                 <span className="text-slate-500 font-medium">Available Balance:</span>
                 <span className="font-bold text-slate-900">₦{balance.toLocaleString()}</span>
@@ -212,12 +246,11 @@ export default function WalletPage() {
                 {error && <p className="text-[11px] text-rose-500 font-semibold mt-1">{error}</p>}
               </div>
 
-              {/* Modal Actions */}
               <div className="flex items-center gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => {
-                    setIsModalOpen(false);
+                    setIsSaveModalOpen(false);
                     setError('');
                     setTransferAmount('');
                   }}
@@ -227,16 +260,90 @@ export default function WalletPage() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm shadow-emerald-600/10 transition"
+                  className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition"
                 >
                   Confirm Transfer
                 </button>
               </div>
-
             </form>
           </div>
         </div>
       )}
+
+      {/* --- FUND WALLET MODAL --- */}
+      {isFundModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-2xl border border-slate-100 shadow-2xl p-6 relative">
+            
+            <h2 className="text-base font-bold text-slate-900 font-serif">Fund Your Co-op Wallet</h2>
+            <p className="text-[11px] text-slate-500 mt-1">
+              Transfer funds to your unique virtual bank account below. The payment will clear instantly into your available balance.
+            </p>
+
+            <div className="mt-5 space-y-4">
+              
+              {/* Bank Details Card */}
+              <div className="bg-slate-50 rounded-2xl border border-slate-100 p-4 space-y-3">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-400 font-medium">Bank Name</span>
+                  <span className="font-bold text-slate-800">United Bank for Africa (UBA)</span>
+                </div>
+                
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-400 font-medium">Account Name</span>
+                  <span className="font-bold text-slate-800">Sparrow Coop / Joseph Peter Amed</span>
+                </div>
+
+                <div className="flex justify-between items-center text-xs pt-2 border-t border-slate-200/60">
+                  <span className="text-slate-400 font-medium">Account Number</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-sm text-slate-900">1023456789</span>
+                    <button 
+                      onClick={handleCopy}
+                      className="px-2.5 py-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 rounded-lg hover:bg-emerald-100/70 transition"
+                    >
+                      {copied ? 'Copied! ✓' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Sandbox/Simulate Input for testing purposes */}
+              <form onSubmit={handleMockFunding} className="p-3 bg-amber-50/40 rounded-xl border border-amber-100 space-y-2">
+                <span className="block text-[9px] font-bold text-amber-700 uppercase tracking-widest">
+                  Sandbox Simulation (Test Funding)
+                </span>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    value={fundAmount}
+                    onChange={(e) => setFundAmount(e.target.value)}
+                    placeholder="Enter mock deposit amount"
+                    className="flex-1 text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white text-slate-800 focus:outline-none"
+                  />
+                  <button 
+                    type="submit"
+                    className="bg-slate-900 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg hover:bg-slate-800 transition"
+                  >
+                    Simulate Transfer
+                  </button>
+                </div>
+              </form>
+
+              {/* Close Button */}
+              <button
+                type="button"
+                onClick={() => setIsFundModalOpen(false)}
+                className="w-full py-2.5 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-50 transition mt-2"
+              >
+                Close
+              </button>
+
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
-}
+        }
