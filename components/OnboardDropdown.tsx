@@ -50,7 +50,7 @@ export default function OnboardDropdown() {
               onClick={() => setIsOpen(false)}
               className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 transition text-left group"
             >
-              <span className="text-base">ðŸ“Š</span>
+              <span className="text-base">📊</span>
               <div>
                 <span className="block text-xs font-bold text-slate-900 group-hover:text-slate-950">
                   Member Dashboard
@@ -63,7 +63,7 @@ export default function OnboardDropdown() {
               onClick={() => setIsOpen(false)}
               className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 transition text-left group"
             >
-              <span className="text-base">ðŸ’³</span>
+              <span className="text-base">💳</span>
               <div>
                 <span className="block text-xs font-bold text-slate-900 group-hover:text-slate-950">
                   Co-op Wallet
@@ -83,7 +83,7 @@ export default function OnboardDropdown() {
               onClick={() => setIsOpen(false)}
               className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 transition text-left group"
             >
-              <span className="text-base">ðŸ›ï¸</span>
+              <span className="text-base">🛍️</span>
               <div>
                 <span className="block text-xs font-bold text-slate-900 group-hover:text-slate-950">
                   Marketplace Store
@@ -96,7 +96,7 @@ export default function OnboardDropdown() {
               onClick={() => setIsOpen(false)}
               className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 transition text-left group"
             >
-              <span className="text-base">ðŸ“¦</span>
+              <span className="text-base">📦</span>
               <div>
                 <span className="block text-xs font-bold text-slate-900 group-hover:text-slate-950">
                   My Orders
@@ -116,7 +116,7 @@ export default function OnboardDropdown() {
               onClick={() => setIsOpen(false)}
               className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white transition text-left group border border-transparent hover:border-slate-100"
             >
-              <span className="text-base">ðŸŽ“</span>
+              <span className="text-base">🎓</span>
               <div>
                 <span className="block text-xs font-bold text-slate-900 group-hover:text-emerald-600">
                   Alumni Registration
@@ -129,12 +129,45 @@ export default function OnboardDropdown() {
               onClick={() => setIsOpen(false)}
               className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white transition text-left group border border-transparent hover:border-slate-100"
             >
-              <span className="text-base">ðŸ¤</span>
+              <span className="text-base">🤝</span>
               <div>
                 <span className="block text-xs font-bold text-slate-900 group-hover:text-amber-500">
                   Partner Vendor
                 </span>
                 <span className="block text-[10px] text-slate-400">Apply to sell general goods to members</span>
+              </div>
+            </Link>
+          </div>
+
+          {/* Section 4: Vendor Dashboard Options */}
+          <div className="p-2 space-y-1 bg-emerald-50/30">
+            <span className="block px-3 pt-1 pb-1 text-[9px] font-bold uppercase tracking-wider text-emerald-600/80">
+              Vendor Management
+            </span>
+            <Link
+              href="/vendor/products"
+              onClick={() => setIsOpen(false)}
+              className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white transition text-left group border border-transparent hover:border-slate-100"
+            >
+              <span className="text-base">🏪</span>
+              <div>
+                <span className="block text-xs font-bold text-slate-900 group-hover:text-emerald-600">
+                  My Uploaded Products
+                </span>
+                <span className="block text-[10px] text-slate-400">Manage, edit, or remove your listings</span>
+              </div>
+            </Link>
+            <Link
+              href="/vendor/upload-product"
+              onClick={() => setIsOpen(false)}
+              className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white transition text-left group border border-transparent hover:border-slate-100"
+            >
+              <span className="text-base">➕</span>
+              <div>
+                <span className="block text-xs font-bold text-slate-900 group-hover:text-emerald-600">
+                  Upload New Product
+                </span>
+                <span className="block text-[10px] text-slate-400">Add a new deal to the marketplace</span>
               </div>
             </Link>
           </div>
