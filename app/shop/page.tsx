@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useCoOp } from '../CoOpState';
 
-const PRODUCTS = [
+const CORE_PRODUCTS = [
   { id: 1, name: 'Co-Op Tech Smart Backpack', category: 'Gear', price: 35000.00, desc: 'Water-resistant, anti-theft design with a built-in USB charging port.', img: '🎒' },
   { id: 2, name: 'Eco-Insulated Steel Flask', category: 'Lifestyle', price: 12500.00, desc: 'Double-walled vacuum insulation. Keeps drinks cold for 24h or hot for 12h.', img: '🥤' },
   { id: 3, name: 'Alumni Edition Mechanical Keyboard', category: 'Tech', price: 65000.00, desc: 'Tactile blue switches, custom alumni-themed keycaps, and RGB backlighting.', img: '⌨️' },
@@ -22,7 +22,11 @@ function ShopPage() {
     );
   }
 
-  const { isMember, setIsMember, memberBalance, addToCart } = context;
+  // Destructure vendorProducts from your dynamic global state
+  const { isMember, setIsMember, memberBalance, addToCart, vendorProducts } = context;
+
+  // Merge core products with vendor-submitted ones
+  const ALL_PRODUCTS = [...vendorProducts, ...CORE_PRODUCTS];
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 animate-fade-in">
@@ -82,7 +86,7 @@ function ShopPage() {
       <div>
         <h2 className="font-serif text-lg text-slate-950 font-semibold mb-6">Featured Goods</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-          {PRODUCTS.map((product) => {
+          {ALL_PRODUCTS.map((product) => {
             const displayPrice = isMember ? product.price * 0.85 : product.price;
             return (
               <div key={product.id} className="bg-white border border-gray-200 p-5 rounded-2xl shadow-sm flex flex-col justify-between hover:border-gray-300 hover:shadow-md transition">
