@@ -2,8 +2,17 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
+export interface CustomProduct {
+  id: string | number;
+  name: string;
+  category: string;
+  price: number;
+  desc: string;
+  img: string;
+}
+
 interface CartItem {
-  id: number;
+  id: string | number;
   name: string;
   price: number;
   quantity: number;
@@ -15,10 +24,13 @@ interface CoOpContextType {
   memberBalance: number;
   setMemberBalance: (val: number) => void;
   cart: CartItem[];
-  addToCart: (item: { id: number; name: string; price: number }) => void;
-  removeFromCart: (id: number) => void;
+  addToCart: (item: { id: string | number; name: string; price: number }) => void;
+  removeFromCart: (id: string | number) => void;
   clearCart: () => void;
   checkout: () => { success: boolean; message: string };
+  // New vendor states
+  vendorProducts: CustomProduct[];
+  addVendorProduct: (product: Omit<CustomProduct, 'id'>) => void;
 }
 
 const CoOpContext = createContext<CoOpContextType | undefined>(undefined);
@@ -27,12 +39,23 @@ export function CoOpProvider({ children }: { children: React.ReactNode }) {
   const [isMember, setIsMember] = useState<boolean>(true);
   const [memberBalance, setMemberBalance] = useState<number>(150000.00); // ₦150,000 starting balance
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [vendorProducts, setVendorProducts] = useState<CustomProduct[]>([]);
 
+  // Hydrate states from localStorage on client-side mount
   useEffect(() => {
     const savedBalance = localStorage.getItem('coop_balance');
     const savedIsMember = localStorage.getItem('coop_is_member');
+    const savedProducts = localStorage.getItem('coop_vendor_products');
+    
     if (savedBalance) setMemberBalance(parseFloat(savedBalance));
     if (savedIsMember) setIsMember(savedIsMember === 'true');
+    if (savedProducts) {
+      try {
+        setVendorProducts(JSON.parse(savedProducts));
+      } catch (e) {
+        console.error("Failed parsing cached vendor products", e);
+      }
+    }
   }, []);
 
   const updateBalance = (newBalance: number) => {
@@ -45,7 +68,21 @@ export function CoOpProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('coop_is_member', status.toString());
   };
 
-  const addToCart = (product: { id: number; name: string; price: number }) => {
+  // Safe wrapper to update state and preserve uploaded products across page reloads
+  const addVendorProduct = (newProduct: Omit<CustomProduct, 'id'>) => {
+    const productWithId: CustomProduct = {
+      ...newProduct,
+      id: `vendor-${Date.now()}` // Generates a safe, unique string ID
+    };
+    
+    setVendorProducts(prev => {
+      const updatedList = [productWithId, ...prev];
+      localStorage.setItem('coop_vendor_products', JSON.stringify(updatedList));
+      return updatedList;
+    });
+  };
+
+  const addToCart = (product: { id: string | number; name: string; price: number }) => {
     setCart(prevCart => {
       const existing = prevCart.find(item => item.id === product.id);
       const price = isMember ? product.price * 0.85 : product.price;
@@ -59,7 +96,7 @@ export function CoOpProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
-  const removeFromCart = (id: number) => {
+  const removeFromCart = (id: string | number) => {
     setCart(prev => prev.filter(item => item.id !== id));
   };
 
@@ -92,7 +129,9 @@ export function CoOpProvider({ children }: { children: React.ReactNode }) {
       addToCart,
       removeFromCart,
       clearCart,
-      checkout
+      checkout,
+      vendorProducts,
+      addVendorProduct
     }}>
       {children}
     </CoOpContext.Provider>
