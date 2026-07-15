@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import OnboardDropdown from '@/components/OnboardDropdown';
+import OnboardDropdown from '../components/OnboardDropdown';
 
 export default function Header() {
   return (
