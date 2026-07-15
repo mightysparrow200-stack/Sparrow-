@@ -34,6 +34,21 @@ export default function Navbar() {
 
         {/* Quick Menu Trigger Action */}
         <div className="flex items-center gap-3">
+          
+          {/* --- ADDED: Mobile & Desktop Friendly Cart Icon --- */}
+          <Link
+            href="/cart"
+            className="relative p-2.5 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-slate-50 text-slate-700 hover:text-emerald-600 transition"
+            aria-label="View Cart"
+          >
+            <span className="text-base flex items-center">🛒</span>
+            
+            {/* Optional: Cart count badge indicator (e.g. if items > 0) */}
+            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-600 text-[8px] font-bold text-white ring-2 ring-white">
+              0
+            </span>
+          </Link>
+
           <OnboardDropdown />
           
           <Link
