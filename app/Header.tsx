@@ -30,11 +30,11 @@ export default function Header() {
     <header className="sticky top-0 z-50 bg-white border-b border-slate-100 px-4 py-3 font-sans shadow-sm">
       <div className="max-w-5xl mx-auto flex items-center justify-between relative h-10">
         
-        {/* Brand Logo */}
-        <Link href="/shop" className="flex items-center gap-2 shrink-0">
-          <span className="text-3xl">🐦</span>
+        {/* Brand Logo / Home Trigger */}
+        <Link href="/shop" className="flex items-center gap-2 shrink-0 group" title="Go to Home">
+          <span className="text-3xl transition-transform group-hover:scale-105 duration-200">🐦</span>
           <div>
-            <span className="block text-sm font-bold tracking-tight text-slate-900 leading-tight">
+            <span className="block text-sm font-bold tracking-tight text-slate-900 leading-tight group-hover:text-emerald-600 transition-colors">
               Mighty Sparrow
             </span>
             <span className="block text-[9px] font-black tracking-widest text-emerald-600 uppercase leading-none">
@@ -97,6 +97,23 @@ export default function Header() {
                       Personal Portal
                     </span>
                   </div>
+
+                  {/* ADDED: My Profile Link mapping directly to your vendor/profile path */}
+                  <Link
+                    href="/vendor/profile"
+                    onClick={() => setIsOpen(false)}
+                    className="flex items-start gap-4 px-5 py-3 hover:bg-slate-50 transition"
+                  >
+                    <span className="text-2xl mt-0.5 shrink-0">👤</span>
+                    <div>
+                      <span className="block text-sm font-bold text-slate-800 leading-tight">
+                        My Profile
+                      </span>
+                      <span className="block text-xs text-slate-500 mt-1 leading-snug">
+                        Manage your profile details and settings
+                      </span>
+                    </div>
+                  </Link>
                   
                   <Link
                     href="/dashboard"
@@ -139,6 +156,7 @@ export default function Header() {
                     </span>
                   </div>
 
+                  {/* Marketplace Store / Home */}
                   <Link
                     href="/shop"
                     onClick={() => setIsOpen(false)}
