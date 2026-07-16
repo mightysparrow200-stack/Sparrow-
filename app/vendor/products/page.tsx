@@ -70,7 +70,7 @@ export default function VendorProductsPage() {
             <div className="flex items-center gap-2 text-xs text-slate-400 font-semibold mb-1">
               <span className="text-slate-600">Vendor Portal</span>
               <span>/</span>
-              <span className="text-slate-600">My Inventory</span>
+              <span className="text-slate-600">My Products</span>
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">Your Uploaded Products</h1>
             <p className="text-xs text-slate-500">
@@ -88,6 +88,7 @@ export default function VendorProductsPage() {
 
         {/* --- DIRECT PORTAL NAVIGATION LINKS --- */}
         <div className="flex flex-wrap gap-2 mb-8 bg-white border border-slate-100 p-2 rounded-2xl shadow-sm">
+          {/* Active button highlighting the current page */}
           <button 
             disabled 
             className="flex-1 text-center py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold cursor-default"
