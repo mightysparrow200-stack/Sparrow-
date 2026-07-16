@@ -22,6 +22,7 @@ interface CoOpContextType {
   removeFromCart: (productId: string) => void;
   clearCart: () => void;
   updateQuantity: (productId: string, quantity: number) => void;
+  checkout: () => Promise<{ success: boolean; error?: string }>;
   loading: boolean;
 }
 
@@ -125,6 +126,67 @@ export function CoOpProvider({ children }: { children: React.ReactNode }) {
 
   const clearCart = () => setCart([]);
 
+  // 4. Checkout Logic (Deducts balance, registers order & items)
+  const checkout = async () => {
+    try {
+      if (!user) throw new Error('Please log in to complete your checkout');
+      
+      const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+      // Verify funds
+      if (memberBalance < cartTotal) {
+        throw new Error('Insufficient co-op wallet balance. Please top up.');
+      }
+
+      const newBalance = memberBalance - cartTotal;
+
+      // A. Deduct balance from Wallet
+      const { error: walletError } = await supabase
+        .from('wallets')
+        .update({ balance: newBalance })
+        .eq('user_id', user.id);
+
+      if (walletError) throw walletError;
+
+      // B. Create Order Record
+      const { data: orderData, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          user_id: user.id,
+          total_amount: cartTotal,
+          status: 'completed'
+        })
+        .select()
+        .single();
+
+      if (orderError) throw orderError;
+
+      // C. Populate Order Items breakdown
+      const orderItems = cart.map((item) => ({
+        order_id: orderData.id,
+        product_id: item.id,
+        quantity: item.quantity,
+        price_at_purchase: item.price
+      }));
+
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .insert(orderItems);
+
+      if (itemsError) throw itemsError;
+
+      // D. Update Local UI State
+      setMemberBalance(newBalance);
+      clearCart();
+
+      return { success: true };
+
+    } catch (err: any) {
+      console.error('Checkout transaction failed:', err);
+      return { success: false, error: err.message || 'An unknown error occurred' };
+    }
+  };
+
   // Check if profile role is recognized as an active member or vendor
   const isMember = profile?.role === 'member' || profile?.role === 'vendor';
 
@@ -140,6 +202,7 @@ export function CoOpProvider({ children }: { children: React.ReactNode }) {
         removeFromCart,
         clearCart,
         updateQuantity,
+        checkout,
         loading,
       }}
     >
