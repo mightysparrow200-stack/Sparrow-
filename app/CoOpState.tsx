@@ -24,7 +24,8 @@ interface CoOpContextType {
   updateQuantity: (productId: string, quantity: number) => void;
   checkout: () => Promise<{ success: boolean; error?: string }>;
   loading: boolean;
-  vendorProducts?: any[]; // FIXED: Added to context interface so TypeScript registers it cleanly on your shop page
+  vendorProducts?: any[];
+  addVendorProduct: (product: any) => void; // FIXED: Added to interface
 }
 
 const CoOpContext = createContext<CoOpContextType | undefined>(undefined);
@@ -34,7 +35,7 @@ export function CoOpProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<any | null>(null);
   const [memberBalance, setMemberBalance] = useState<number>(0);
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [vendorProducts, setVendorProducts] = useState<any[]>([]); // FIXED: Added state to manage vendor uploaded products
+  const [vendorProducts, setVendorProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // 1. Manage Authentication & User Sessions
@@ -67,14 +68,14 @@ export function CoOpProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // Optional: Fetch dynamic vendor products on mount (if you want database sync)
+  // Fetch dynamic vendor products on mount
   useEffect(() => {
     async function fetchVendorProducts() {
       try {
         const { data, error } = await supabase
           .from('products')
           .select('*')
-          .eq('is_vendor_product', true); // Assumes you tag items submitted by vendors
+          .eq('is_vendor_product', true);
 
         if (!error && data) {
           setVendorProducts(data);
@@ -146,6 +147,11 @@ export function CoOpProvider({ children }: { children: React.ReactNode }) {
   };
 
   const clearCart = () => setCart([]);
+
+  // FIXED: Action to locally insert a vendor uploaded product into our state context
+  const addVendorProduct = (product: any) => {
+    setVendorProducts((prev) => [product, ...prev]);
+  };
 
   // 4. Checkout Logic (Deducts balance, registers order & items)
   const checkout = async () => {
@@ -225,7 +231,8 @@ export function CoOpProvider({ children }: { children: React.ReactNode }) {
         updateQuantity,
         checkout,
         loading,
-        vendorProducts, // FIXED: Exposing the state array through context
+        vendorProducts,
+        addVendorProduct, // FIXED: Exposing the state action
       }}
     >
       {children}
@@ -239,4 +246,4 @@ export function useCoOp() {
     throw new Error('useCoOp must be used within a CoOpProvider');
   }
   return context;
-}
+          }
