@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from './utils/supabase';
-import { marketplaceProducts, addProduct as addLibProduct } from './lib'; // 👈 Import your mock database helper
+import { marketplaceProducts, addProduct as addLibProduct } from '../lib/db'; // 👈 Fixed import path to target root lib/db.ts
 
 // Define the shape of our context state
 interface CartItem {
@@ -37,7 +37,7 @@ export function CoOpProvider({ children }: { children: React.ReactNode }) {
   const [memberBalance, setMemberBalance] = useState<number>(0);
   const [cart, setCart] = useState<CartItem[]>([]);
   
-  // FIXED: Initialize vendorProducts directly with the mock products in your library!
+  // Initialize vendorProducts directly with the mock products in your library
   const [vendorProducts, setVendorProducts] = useState<any[]>(marketplaceProducts);
   const [loading, setLoading] = useState(true);
 
@@ -141,7 +141,7 @@ export function CoOpProvider({ children }: { children: React.ReactNode }) {
 
   const clearCart = () => setCart([]);
 
-  // FIXED: Syncs both the react state AND your mock database array
+  // Syncs both the react state AND your mock database array
   const addVendorProduct = (product: any) => {
     // Add to static database array
     const newProduct = addLibProduct({
