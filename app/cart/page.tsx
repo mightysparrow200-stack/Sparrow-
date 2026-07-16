@@ -20,9 +20,15 @@ function CartPage() {
   const { isMember, memberBalance, cart, removeFromCart, checkout } = context;
   const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-  const handleCheckout = () => {
-    const result = checkout();
-    setCheckoutStatus(result);
+  // FIXED: Converted to async/await to correctly handle the Promise from Supabase
+  const handleCheckout = async () => {
+    const result = await checkout();
+    
+    setCheckoutStatus({
+      success: result.success,
+      message: result.success ? 'Order placed successfully!' : result.error
+    });
+    
     setTimeout(() => setCheckoutStatus({}), 5000);
   };
 
@@ -38,7 +44,8 @@ function CartPage() {
             {cart.map((item) => (
               <div key={item.id} className="flex items-center justify-between py-4 first:pt-0 last:pb-0">
                 <div>
-                  <h3 className="text-sm font-semibold text-slate-950">{item.name}</h3>
+                  {/* FIXED: Changed item.name to item.title to match the CoOpState.tsx interface */}
+                  <h3 className="text-sm font-semibold text-slate-950">{item.title}</h3>
                   <p className="text-xs text-gray-400 mt-1">
                     Qty: <span className="font-bold text-slate-700">{item.quantity}</span> × ₦{item.price.toLocaleString('en-NG', { minimumFractionDigits: 2 })}
                   </p>
@@ -68,7 +75,7 @@ function CartPage() {
             {isMember && (
               <div className="flex justify-between items-center text-xs text-gray-500">
                 <span>Your Available Wallet</span>
-                <span className="font-bold text-coopGreen">₦{memberBalance.toLocaleString('en-NG', { minimumFractionDigits: 2 })}</span>
+                <span className="font-bold text-emerald-600">₦{memberBalance.toLocaleString('en-NG', { minimumFractionDigits: 2 })}</span>
               </div>
             )}
 
@@ -79,7 +86,7 @@ function CartPage() {
 
             <button
               onClick={handleCheckout}
-              className="w-full bg-coopGold text-slate-950 text-sm font-bold py-3 rounded-xl hover:bg-yellow-500 active:scale-95 transition mt-2 shadow-sm"
+              className="w-full bg-amber-400 text-slate-950 text-sm font-bold py-3 rounded-xl hover:bg-yellow-500 active:scale-95 transition mt-2 shadow-sm"
             >
               {isMember ? 'Authorize Co-op Wallet Payment' : 'Proceed to Payment Gateway'}
             </button>
@@ -92,7 +99,7 @@ function CartPage() {
           <p className="text-xs text-gray-400 mt-1.5 mb-6">Looks like you haven't added anything to your cart yet.</p>
           <a
             href="/shop"
-            className="inline-block bg-coopGreen text-white text-xs font-semibold px-5 py-2.5 rounded-xl hover:bg-coopGreen-dark transition shadow-sm"
+            className="inline-block bg-emerald-600 text-white text-xs font-semibold px-5 py-2.5 rounded-xl hover:bg-emerald-700 transition shadow-sm"
           >
             Return to Marketplace
           </a>
