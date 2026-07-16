@@ -86,7 +86,7 @@ export default function Header() {
               </span>
             </button>
 
-            {/* Clean 6-Item Dropdown List */}
+            {/* Clean Dropdown List using your real file paths */}
             {isOpen && (
               <div className="absolute right-0 mt-3 w-80 max-h-[85vh] overflow-y-auto bg-white border border-slate-100 rounded-2xl shadow-2xl z-50 divide-y divide-slate-100 font-sans">
                 
@@ -99,7 +99,7 @@ export default function Header() {
                   </div>
                   
                   <Link
-                    href="/member/dashboard"
+                    href="/dashboard"
                     onClick={() => setIsOpen(false)}
                     className="flex items-start gap-4 px-5 py-3 hover:bg-slate-50 transition"
                   >
@@ -115,7 +115,7 @@ export default function Header() {
                   </Link>
 
                   <Link
-                    href="/member/wallet"
+                    href="/wallet"
                     onClick={() => setIsOpen(false)}
                     className="flex items-start gap-4 px-5 py-3 hover:bg-slate-50 transition"
                   >
@@ -140,7 +140,7 @@ export default function Header() {
                   </div>
 
                   <Link
-                    href="/marketplace"
+                    href="/shop"
                     onClick={() => setIsOpen(false)}
                     className="flex items-start gap-4 px-5 py-3 hover:bg-slate-50 transition"
                   >
@@ -156,7 +156,7 @@ export default function Header() {
                   </Link>
 
                   <Link
-                    href="/member/orders"
+                    href="/orders"
                     onClick={() => setIsOpen(false)}
                     className="flex items-start gap-4 px-5 py-3 hover:bg-slate-50 transition"
                   >
@@ -181,7 +181,7 @@ export default function Header() {
                   </div>
 
                   <Link
-                    href="/register"
+                    href="/onboard/member"
                     onClick={() => setIsOpen(false)}
                     className="flex items-start gap-4 px-5 py-3 hover:bg-slate-50 transition"
                   >
@@ -197,7 +197,7 @@ export default function Header() {
                   </Link>
 
                   <Link
-                    href="/vendor/register"
+                    href="/onboard/vendor"
                     onClick={() => setIsOpen(false)}
                     className="flex items-start gap-4 px-5 py-3 hover:bg-slate-50 transition"
                   >
@@ -222,4 +222,4 @@ export default function Header() {
       </div>
     </header>
   );
-                        }
+}
