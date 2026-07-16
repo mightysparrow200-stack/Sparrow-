@@ -16,14 +16,14 @@ function ShopPage() {
   if (!context) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
-        <div className="w-8 h-8 border-4 border-coopGreen border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
         <p className="text-xs text-gray-500 font-medium">Loading Marketplace...</p>
       </div>
     );
   }
 
-  // Destructure vendorProducts from your dynamic global state
-  const { isMember, setIsMember, memberBalance, addToCart, vendorProducts } = context;
+  // FIXED: Removed setIsMember and safely provided a fallback for vendorProducts
+  const { isMember, memberBalance, addToCart, vendorProducts = [] } = context;
 
   // Merge core products with vendor-submitted ones
   const ALL_PRODUCTS = [...vendorProducts, ...CORE_PRODUCTS];
@@ -40,24 +40,18 @@ function ShopPage() {
           </p>
         </div>
 
-        {/* MEMBER / GUEST TOGGLE */}
-        <div className="bg-white border border-gray-200 p-1.5 rounded-xl flex items-center gap-1 shadow-sm w-fit">
-          <button
-            onClick={() => setIsMember(true)}
-            className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition ${
-              isMember ? 'bg-coopGreen text-white shadow-sm' : 'text-gray-500 hover:text-slate-900'
-            }`}
-          >
-            Alumni Member
-          </button>
-          <button
-            onClick={() => setIsMember(false)}
-            className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition ${
-              !isMember ? 'bg-slate-900 text-white shadow-sm' : 'text-gray-500 hover:text-slate-900'
-            }`}
-          >
-            Guest (Retail)
-          </button>
+        {/* FIXED: Replaced interactive state buttons with a secure status indicator */}
+        <div className="bg-white border border-gray-200 p-2 rounded-xl flex items-center gap-2 shadow-sm w-fit text-xs font-semibold">
+          <span className="text-gray-400">Account Type:</span>
+          {isMember ? (
+            <span className="bg-emerald-600 text-white px-3 py-1 rounded-lg shadow-sm">
+              Alumni Member
+            </span>
+          ) : (
+            <span className="bg-slate-900 text-white px-3 py-1 rounded-lg shadow-sm">
+              Guest (Retail)
+            </span>
+          )}
         </div>
       </div>
 
@@ -92,7 +86,7 @@ function ShopPage() {
               <div key={product.id} className="bg-white border border-gray-200 p-5 rounded-2xl shadow-sm flex flex-col justify-between hover:border-gray-300 hover:shadow-md transition">
                 <div>
                   <div className="text-3xl mb-3">{product.img}</div>
-                  <span className="text-[10px] font-bold text-coopGold uppercase tracking-wider">{product.category}</span>
+                  <span className="text-[10px] font-bold text-amber-500 uppercase tracking-wider">{product.category}</span>
                   <h3 className="font-serif text-sm text-slate-950 font-bold mt-1 line-clamp-1">{product.name}</h3>
                   <p className="text-xs text-gray-500 mt-1.5 leading-relaxed line-clamp-2">{product.desc}</p>
                 </div>
@@ -106,7 +100,7 @@ function ShopPage() {
                   </div>
                   <button
                     onClick={() => addToCart(product)}
-                    className="bg-coopGreen text-white text-xs font-semibold px-3 py-1.5 rounded-xl hover:bg-coopGreen-dark active:scale-95 transition shadow-sm"
+                    className="bg-emerald-600 text-white text-xs font-semibold px-3 py-1.5 rounded-xl hover:bg-emerald-700 active:scale-95 transition shadow-sm"
                   >
                     Add +
                   </button>
