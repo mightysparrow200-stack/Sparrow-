@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from './utils/supabase';
+import { marketplaceProducts, addProduct as addLibProduct } from './lib'; // 👈 Import your mock database helper
 
 // Define the shape of our context state
 interface CartItem {
@@ -25,7 +26,7 @@ interface CoOpContextType {
   checkout: () => Promise<{ success: boolean; error?: string }>;
   loading: boolean;
   vendorProducts?: any[];
-  addVendorProduct: (product: any) => void; // FIXED: Added to interface
+  addVendorProduct: (product: any) => void;
 }
 
 const CoOpContext = createContext<CoOpContextType | undefined>(undefined);
@@ -35,11 +36,19 @@ export function CoOpProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<any | null>(null);
   const [memberBalance, setMemberBalance] = useState<number>(0);
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [vendorProducts, setVendorProducts] = useState<any[]>([]);
+  
+  // FIXED: Initialize vendorProducts directly with the mock products in your library!
+  const [vendorProducts, setVendorProducts] = useState<any[]>(marketplaceProducts);
   const [loading, setLoading] = useState(true);
 
   // 1. Manage Authentication & User Sessions
   useEffect(() => {
+    // Only query Supabase if the library initialized properly
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
+
     // Get active session on load
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
@@ -48,6 +57,9 @@ export function CoOpProvider({ children }: { children: React.ReactNode }) {
       } else {
         setLoading(false);
       }
+    }).catch(() => {
+      // Gracefully handle build-time environments without crashing
+      setLoading(false);
     });
 
     // Listen to changes in auth state (login, logout, sign up)
@@ -66,25 +78,6 @@ export function CoOpProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
-
-  // Fetch dynamic vendor products on mount
-  useEffect(() => {
-    async function fetchVendorProducts() {
-      try {
-        const { data, error } = await supabase
-          .from('products')
-          .select('*')
-          .eq('is_vendor_product', true);
-
-        if (!error && data) {
-          setVendorProducts(data);
-        }
-      } catch (err) {
-        console.error('Error fetching vendor products:', err);
-      }
-    }
-    fetchVendorProducts();
   }, []);
 
   // 2. Fetch User Profile and Wallet Balance
@@ -148,9 +141,21 @@ export function CoOpProvider({ children }: { children: React.ReactNode }) {
 
   const clearCart = () => setCart([]);
 
-  // FIXED: Action to locally insert a vendor uploaded product into our state context
+  // FIXED: Syncs both the react state AND your mock database array
   const addVendorProduct = (product: any) => {
-    setVendorProducts((prev) => [product, ...prev]);
+    // Add to static database array
+    const newProduct = addLibProduct({
+      name: product.name,
+      category: product.category,
+      price: Number(product.price),
+      stock: Number(product.stock || 1),
+      description: product.description || '',
+      image: product.image || '📦',
+      vendorName: product.vendorName || 'Independent Vendor'
+    });
+
+    // Update frontend state instantly
+    setVendorProducts((prev) => [newProduct, ...prev]);
   };
 
   // 4. Checkout Logic (Deducts balance, registers order & items)
@@ -232,7 +237,7 @@ export function CoOpProvider({ children }: { children: React.ReactNode }) {
         checkout,
         loading,
         vendorProducts,
-        addVendorProduct, // FIXED: Exposing the state action
+        addVendorProduct,
       }}
     >
       {children}
@@ -246,4 +251,4 @@ export function useCoOp() {
     throw new Error('useCoOp must be used within a CoOpProvider');
   }
   return context;
-          }
+}
