@@ -65,10 +65,10 @@ export default function VendorProductsPage() {
       <div className="max-w-4xl mx-auto px-4">
 
         {/* Dashboard Header Banner */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
             <div className="flex items-center gap-2 text-xs text-slate-400 font-semibold mb-1">
-              <Link href="/dashboard" className="hover:text-slate-600">Vendor Portal</Link>
+              <span className="text-slate-600">Vendor Portal</span>
               <span>/</span>
               <span className="text-slate-600">My Inventory</span>
             </div>
@@ -83,6 +83,30 @@ export default function VendorProductsPage() {
             className="inline-flex items-center justify-center bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-5 py-3 rounded-xl transition shadow-sm self-start sm:self-auto"
           >
             + Upload New Product
+          </Link>
+        </div>
+
+        {/* --- DIRECT PORTAL NAVIGATION LINKS --- */}
+        <div className="flex flex-wrap gap-2 mb-8 bg-white border border-slate-100 p-2 rounded-2xl shadow-sm">
+          <button 
+            disabled 
+            className="flex-1 text-center py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold cursor-default"
+          >
+            📦 My Inventory
+          </button>
+          
+          <Link 
+            href="/vendor/upload-product" 
+            className="flex-1 text-center py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition"
+          >
+            ➕ Upload Product
+          </Link>
+          
+          <Link 
+            href="/vendor/profile" 
+            className="flex-1 text-center py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition"
+          >
+            👤 Profile & Payouts
           </Link>
         </div>
 
@@ -205,4 +229,4 @@ export default function VendorProductsPage() {
       </div>
     </main>
   );
-          }
+}
