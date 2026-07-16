@@ -97,10 +97,10 @@ export default function VendorProfilePage() {
         {/* --- DIRECT PORTAL NAVIGATION LINKS --- */}
         <div className="flex flex-wrap gap-2 bg-white border border-slate-100 p-2 rounded-2xl shadow-sm">
           <Link 
-            href="/vendor/inventory" 
+            href="/vendor/products" 
             className="flex-1 text-center py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition"
           >
-            📦 My Inventory
+            📦 My Products
           </Link>
           
           <Link 
