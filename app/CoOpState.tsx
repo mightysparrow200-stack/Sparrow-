@@ -24,6 +24,7 @@ interface CoOpContextType {
   updateQuantity: (productId: string, quantity: number) => void;
   checkout: () => Promise<{ success: boolean; error?: string }>;
   loading: boolean;
+  vendorProducts?: any[]; // FIXED: Added to context interface so TypeScript registers it cleanly on your shop page
 }
 
 const CoOpContext = createContext<CoOpContextType | undefined>(undefined);
@@ -33,6 +34,7 @@ export function CoOpProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<any | null>(null);
   const [memberBalance, setMemberBalance] = useState<number>(0);
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [vendorProducts, setVendorProducts] = useState<any[]>([]); // FIXED: Added state to manage vendor uploaded products
   const [loading, setLoading] = useState(true);
 
   // 1. Manage Authentication & User Sessions
@@ -63,6 +65,25 @@ export function CoOpProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe();
     };
+  }, []);
+
+  // Optional: Fetch dynamic vendor products on mount (if you want database sync)
+  useEffect(() => {
+    async function fetchVendorProducts() {
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('is_vendor_product', true); // Assumes you tag items submitted by vendors
+
+        if (!error && data) {
+          setVendorProducts(data);
+        }
+      } catch (err) {
+        console.error('Error fetching vendor products:', err);
+      }
+    }
+    fetchVendorProducts();
   }, []);
 
   // 2. Fetch User Profile and Wallet Balance
@@ -204,6 +225,7 @@ export function CoOpProvider({ children }: { children: React.ReactNode }) {
         updateQuantity,
         checkout,
         loading,
+        vendorProducts, // FIXED: Exposing the state array through context
       }}
     >
       {children}
