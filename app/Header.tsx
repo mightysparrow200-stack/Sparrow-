@@ -1,118 +1,50 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import OnboardDropdown from '../components/OnboardDropdown';
 
-export default function GlobalHeader() {
-  const [isOpen, setIsOpen] = useState(false);
-  const pathname = usePathname();
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  // Close dropdown if user clicks outside of it
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // Determine active portal name to display on the button
-  const getActivePortalName = () => {
-    if (pathname.includes('/vendor/products')) return 'My Inventory';
-    if (pathname.includes('/vendor/upload-product')) return 'Upload Product';
-    if (pathname.includes('/vendor/profile')) return 'Vendor Profile';
-    return 'Explore Portal';
-  };
-
+export default function Header() {
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-slate-100 px-4 py-3.5 font-sans shadow-sm">
-      <div className="max-w-4xl mx-auto flex items-center justify-between">
+    <header className="border-b border-slate-100 bg-white/80 backdrop-blur-md sticky top-0 z-40">
+      <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
         
-        {/* Logo and Brand */}
-        <Link href="/" className="flex items-center gap-3">
-          <span className="text-3xl">🐦</span>
-          <div>
-            <span className="block text-sm font-bold tracking-tight text-slate-900">
+        {/* Brand Logo & Identity */}
+        <Link href="/" className="flex items-center gap-2">
+          <span className="text-xl">🐦</span>
+          <div className="flex flex-col">
+            <span className="font-serif font-bold text-sm text-slate-950 tracking-tight leading-none">
               Mighty Sparrow
             </span>
-            <span className="block text-[9px] font-black tracking-widest text-emerald-600 uppercase">
-              Alumni Co-Op
+            <span className="text-[9px] font-bold uppercase tracking-widest text-emerald-600 mt-1">
+              Alumni Co-op
             </span>
           </div>
         </Link>
 
-        {/* Global Navigation Dropdown */}
-        <div className="relative" ref={menuRef}>
-          <button
-            onClick={() => setIsOpen(!isOpen)}
-            className="flex items-center gap-2 border border-slate-200 hover:border-slate-300 rounded-2xl px-4 py-2.5 bg-white transition text-left"
+        {/* Desktop Centered Secondary Nav Links */}
+        <nav className="hidden md:flex items-center gap-6">
+          <Link href="/shop" className="text-xs text-slate-500 hover:text-slate-950 font-semibold transition">
+            Marketplace
+          </Link>
+          <Link href="/dashboard" className="text-xs text-slate-500 hover:text-slate-950 font-semibold transition">
+            Savings
+          </Link>
+          <Link href="/wallet" className="text-xs text-slate-500 hover:text-slate-950 font-semibold transition">
+            Wallet
+          </Link>
+        </nav>
+
+        {/* Global Action Panel */}
+        <div className="flex items-center gap-3">
+          {/* Quick-Drop Navigation Menu containing all user/membership pages */}
+          <OnboardDropdown />
+          
+          <Link
+            href="/dashboard"
+            className="bg-slate-950 text-white text-[11px] font-bold px-4 py-2 rounded-xl hover:bg-slate-800 transition hidden sm:inline-block"
           >
-            <div>
-              <span className="block text-[8px] font-black uppercase tracking-wider text-slate-400">
-                Explore Portal
-              </span>
-              <span className="block text-xs font-bold text-slate-800">
-                {getActivePortalName()}
-              </span>
-            </div>
-            <span className={`text-slate-400 text-[10px] transition-transform duration-200 ml-1 ${isOpen ? 'rotate-180' : ''}`}>
-              ▼
-            </span>
-          </button>
-
-          {/* Dropdown Options */}
-          {isOpen && (
-            <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-100 rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-slate-50">
-              <div className="px-4 py-2 bg-slate-50/50">
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                  Vendor Actions
-                </span>
-              </div>
-              
-              <Link
-                href="/vendor/products"
-                onClick={() => setIsOpen(false)}
-                className={`flex items-center justify-between px-4 py-3 text-xs font-bold transition ${
-                  pathname === '/vendor/products'
-                    ? 'text-emerald-600 bg-emerald-50/30'
-                    : 'text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                <span>📦 My Inventory</span>
-                {pathname === '/vendor/products' && <span className="text-emerald-600 text-[10px]">●</span>}
-              </Link>
-
-              <Link
-                href="/vendor/upload-product"
-                onClick={() => setIsOpen(false)}
-                className={`flex items-center justify-between px-4 py-3 text-xs font-bold transition ${
-                  pathname === '/vendor/upload-product'
-                    ? 'text-emerald-600 bg-emerald-50/30'
-                    : 'text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                <span>➕ Upload Product</span>
-                {pathname === '/vendor/upload-product' && <span className="text-emerald-600 text-[10px]">●</span>}
-              </Link>
-
-              <Link
-                href="/vendor/profile"
-                onClick={() => setIsOpen(false)}
-                className={`flex items-center justify-between px-4 py-3 text-xs font-bold transition ${
-                  pathname === '/vendor/profile'
-                    ? 'text-emerald-600 bg-emerald-50/30'
-                    : 'text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                <span>👤 Profile & Payouts</span>
-                {pathname === '/vendor/profile' && <span className="text-emerald-600 text-[10px]">●</span>}
-              </Link>
-            </div>
-          )}
+            My Account
+          </Link>
         </div>
 
       </div>
