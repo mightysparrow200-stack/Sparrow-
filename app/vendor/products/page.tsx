@@ -93,7 +93,7 @@ export default function VendorProductsPage() {
             disabled 
             className="flex-1 text-center py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold cursor-default"
           >
-            📦 My Inventory
+            📦 My Products
           </button>
           
           <Link 
