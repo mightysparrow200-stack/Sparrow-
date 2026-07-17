@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from './utils/supabase';
-import { marketplaceProducts, addProduct as addLibProduct } from '../lib/db'; // 👈 Fixed import path to target root lib/db.ts
 
 // Define the shape of our context state
 interface CartItem {
@@ -25,8 +24,8 @@ interface CoOpContextType {
   updateQuantity: (productId: string, quantity: number) => void;
   checkout: () => Promise<{ success: boolean; error?: string }>;
   loading: boolean;
-  vendorProducts?: any[];
-  addVendorProduct: (product: any) => void;
+  vendorProducts: any[];
+  addVendorProduct: (product: any) => Promise<void>;
 }
 
 const CoOpContext = createContext<CoOpContextType | undefined>(undefined);
@@ -36,14 +35,11 @@ export function CoOpProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<any | null>(null);
   const [memberBalance, setMemberBalance] = useState<number>(0);
   const [cart, setCart] = useState<CartItem[]>([]);
-  
-  // Initialize vendorProducts directly with the mock products in your library
-  const [vendorProducts, setVendorProducts] = useState<any[]>(marketplaceProducts);
+  const [vendorProducts, setVendorProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // 1. Manage Authentication & User Sessions
   useEffect(() => {
-    // Only query Supabase if the library initialized properly
     if (!supabase) {
       setLoading(false);
       return;
@@ -58,7 +54,6 @@ export function CoOpProvider({ children }: { children: React.ReactNode }) {
         setLoading(false);
       }
     }).catch(() => {
-      // Gracefully handle build-time environments without crashing
       setLoading(false);
     });
 
@@ -80,7 +75,28 @@ export function CoOpProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // 2. Fetch User Profile and Wallet Balance
+  // 2. LIVE: Fetch real products from Supabase on load
+  useEffect(() => {
+    async function fetchLiveProducts() {
+      try {
+        if (!supabase) return;
+        
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        if (data) setVendorProducts(data);
+      } catch (err) {
+        console.error('Error fetching live database products:', err);
+      }
+    }
+    
+    fetchLiveProducts();
+  }, []);
+
+  // 3. Fetch User Profile and Wallet Balance
   const fetchUserProfileAndWallet = async (userId: string) => {
     try {
       setLoading(true);
@@ -112,7 +128,7 @@ export function CoOpProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // 3. Cart State Actions
+  // 4. Cart State Actions
   const addToCart = (product: { id: string; title: string; price: number; image_url?: string }) => {
     setCart((prevCart) => {
       const existingItem = prevCart.find((item) => item.id === product.id);
@@ -141,24 +157,41 @@ export function CoOpProvider({ children }: { children: React.ReactNode }) {
 
   const clearCart = () => setCart([]);
 
-  // Syncs both the react state AND your mock database array
-  const addVendorProduct = (product: any) => {
-    // Add to static database array
-    const newProduct = addLibProduct({
-      name: product.name,
-      category: product.category,
-      price: Number(product.price),
-      stock: Number(product.stock || 1),
-      description: product.description || '',
-      image: product.image || '📦',
-      vendorName: product.vendorName || 'Independent Vendor'
-    });
+  // 5. LIVE ACTION: Add dynamic vendor products directly into your Supabase database table
+  const addVendorProduct = async (product: any) => {
+    try {
+      if (!supabase) return;
 
-    // Update frontend state instantly
-    setVendorProducts((prev) => [newProduct, ...prev]);
+      const payload = {
+        name: product.name,
+        category: product.category,
+        price: Number(product.price),
+        stock: Number(product.stock || 1),
+        description: product.description || '',
+        image: product.image || '📦',
+        vendor_name: product.vendorName || 'Independent Vendor',
+        is_vendor_product: true
+      };
+
+      const { data, error } = await supabase
+        .from('products')
+        .insert([payload])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Update local state dynamically so the UI updates instantly without reloading
+      if (data) {
+        setVendorProducts((prev) => [data, ...prev]);
+      }
+    } catch (err) {
+      console.error('Failed to save vendor product to live database:', err);
+      alert('Error saving product. Please try again.');
+    }
   };
 
-  // 4. Checkout Logic (Deducts balance, registers order & items)
+  // 6. Checkout Logic (Deducts balance, registers order & items)
   const checkout = async () => {
     try {
       if (!user) throw new Error('Please log in to complete your checkout');
@@ -251,4 +284,4 @@ export function useCoOp() {
     throw new Error('useCoOp must be used within a CoOpProvider');
   }
   return context;
-}
+            }
