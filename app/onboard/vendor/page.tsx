@@ -2,12 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase'; // Ensures clean URL initialization
 
 export default function VendorOnboarding() {
   const router = useRouter();
   const [formData, setFormData] = useState({
     businessName: '',
-    cacNumber: '', // Corporate Affairs Commission certification check
+    cacNumber: '',
     primaryCategory: 'productivity',
     contactPerson: '',
     email: '',
@@ -17,29 +18,50 @@ export default function VendorOnboarding() {
     notes: ''
   });
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
-    // Simulate Vendor Registry onboarding pipeline
-    setTimeout(() => {
-      setLoading(false);
+    setErrorMsg(null);
+
+    try {
+      const { error } = await supabase.from('vendors').insert([
+        {
+          business_name: formData.businessName,
+          cac_number: formData.cacNumber,
+          primary_category: formData.primaryCategory,
+          contact_person: formData.contactPerson,
+          email: formData.email,
+          naira_payout_bank: formData.nairaPayoutBank,
+          naira_account_number: formData.nairaAccountNumber,
+          min_coop_discount: parseInt(formData.minCoopDiscount, 10),
+          notes: formData.notes
+        }
+      ]);
+
+      if (error) throw error;
+
       setSuccess(true);
-    }, 1800);
+    } catch (err: any) {
+      console.error('Submission error:', err);
+      setErrorMsg(err.message || 'Failed to submit vendor application. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (success) {
     return (
       <div className="max-w-md mx-auto my-16 bg-white border border-gray-100 rounded-3xl p-8 text-center space-y-6 shadow-xl animate-fade-in">
-        <div className="w-16 h-16 bg-coopGold/10 text-coopGold rounded-full flex items-center justify-center text-3xl mx-auto">
+        <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center text-3xl mx-auto">
           🤝
         </div>
         <div className="space-y-2">
           <h1 className="text-2xl font-serif text-slate-950">Application Received</h1>
           <p className="text-xs text-gray-500 leading-relaxed">
-            Your application to sell on the Mighty Sparrow cooperative marketplace is under review. Our vendor auditing team will contact you shortly.
+            Your application to sell on the marketplace is under review. Our vendor auditing team will contact you shortly.
           </p>
         </div>
         <div className="bg-slate-50 p-4 rounded-xl text-left border border-gray-100 space-y-2 text-[11px] text-slate-700">
@@ -60,13 +82,19 @@ export default function VendorOnboarding() {
   return (
     <div className="max-w-2xl mx-auto my-12 px-4 animate-fade-in">
       <div className="mb-8 space-y-2 text-center">
-        <span className="text-[10px] uppercase font-bold tracking-wider text-coopGreen">Vendor Network Partnerships</span>
+        <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-600">Vendor Network Partnerships</span>
         <h1 className="text-3xl font-serif text-slate-950">Supplier Onboarding Portal</h1>
-        <p className="text-xs text-gray-400">Apply to distribute general goods, gadgets, and lifestyle gear directly to active alumni members.</p>
+        <p className="text-xs text-gray-400">Apply to distribute general goods, gadgets, and lifestyle gear directly to active members.</p>
       </div>
 
       <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-3xl p-6 md:p-8 shadow-sm space-y-6">
         
+        {errorMsg && (
+          <div className="p-3 text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl">
+            {errorMsg}
+          </div>
+        )}
+
         {/* Section 1: Business Details */}
         <div className="space-y-4">
           <h2 className="text-sm font-serif font-semibold text-slate-950 border-b pb-2">1. Registered Business Details</h2>
@@ -77,7 +105,7 @@ export default function VendorOnboarding() {
                 type="text"
                 required
                 placeholder="e.g. Apex Tech Ltd"
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-xs focus:ring-1 focus:ring-coopGreen focus:border-coopGreen outline-none"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-xs focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                 value={formData.businessName}
                 onChange={(e) => setFormData({...formData, businessName: e.target.value})}
               />
@@ -88,7 +116,7 @@ export default function VendorOnboarding() {
                 type="text"
                 required
                 placeholder="e.g. RC 1845920"
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-xs focus:ring-1 focus:ring-coopGreen focus:border-coopGreen outline-none"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-xs focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                 value={formData.cacNumber}
                 onChange={(e) => setFormData({...formData, cacNumber: e.target.value})}
               />
@@ -99,7 +127,7 @@ export default function VendorOnboarding() {
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">Primary Product Category</label>
               <select
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-xs focus:ring-1 focus:ring-coopGreen focus:border-coopGreen outline-none bg-white"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-xs focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white"
                 value={formData.primaryCategory}
                 onChange={(e) => setFormData({...formData, primaryCategory: e.target.value})}
               >
@@ -117,7 +145,7 @@ export default function VendorOnboarding() {
                 max="80"
                 required
                 placeholder="Minimum 15%"
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-xs focus:ring-1 focus:ring-coopGreen focus:border-coopGreen outline-none"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-xs focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                 value={formData.minCoopDiscount}
                 onChange={(e) => setFormData({...formData, minCoopDiscount: e.target.value})}
               />
@@ -135,7 +163,7 @@ export default function VendorOnboarding() {
                 type="text"
                 required
                 placeholder="Contact representative"
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-xs focus:ring-1 focus:ring-coopGreen focus:border-coopGreen outline-none"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-xs focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                 value={formData.contactPerson}
                 onChange={(e) => setFormData({...formData, contactPerson: e.target.value})}
               />
@@ -146,7 +174,7 @@ export default function VendorOnboarding() {
                 type="email"
                 required
                 placeholder="partnerships@company.com"
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-xs focus:ring-1 focus:ring-coopGreen focus:border-coopGreen outline-none"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-xs focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                 value={formData.email}
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
               />
@@ -160,7 +188,7 @@ export default function VendorOnboarding() {
                 type="text"
                 required
                 placeholder="e.g. Zenith Bank, GTBank"
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-xs focus:ring-1 focus:ring-coopGreen focus:border-coopGreen outline-none"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-xs focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                 value={formData.nairaPayoutBank}
                 onChange={(e) => setFormData({...formData, nairaPayoutBank: e.target.value})}
               />
@@ -172,7 +200,7 @@ export default function VendorOnboarding() {
                 required
                 maxLength={10}
                 placeholder="10-digit account number"
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-xs focus:ring-1 focus:ring-coopGreen focus:border-coopGreen outline-none"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-xs focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                 value={formData.nairaAccountNumber}
                 onChange={(e) => setFormData({...formData, nairaAccountNumber: e.target.value})}
               />
@@ -185,7 +213,7 @@ export default function VendorOnboarding() {
           <textarea
             rows={3}
             placeholder="Introduce your brand or supply line briefly..."
-            className="w-full border border-gray-200 rounded-xl p-4 text-xs focus:ring-1 focus:ring-coopGreen focus:border-coopGreen outline-none"
+            className="w-full border border-gray-200 rounded-xl p-4 text-xs focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
             value={formData.notes}
             onChange={(e) => setFormData({...formData, notes: e.target.value})}
           />
@@ -194,7 +222,7 @@ export default function VendorOnboarding() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-slate-950 text-white text-xs font-bold py-4 rounded-xl hover:bg-slate-800 transition flex items-center justify-center gap-2"
+          className="w-full bg-slate-950 text-white text-xs font-bold py-4 rounded-xl hover:bg-slate-800 transition flex items-center justify-center gap-2 disabled:opacity-50"
         >
           {loading ? 'Verifying Corporate Credentials...' : 'Submit Partnership Application'}
         </button>
