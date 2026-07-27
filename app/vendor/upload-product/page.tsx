@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useCoOp } from '../../CoOpState'; // Adjusted import path to reach your State hook
+import { createClient } from '@/utils/supabase/client'; // Adjust path if your helper lives in @/lib/supabase/client
 
 export default function VendorUploadPage() {
   const context = useCoOp();
@@ -12,6 +13,11 @@ export default function VendorUploadPage() {
     category: '🌾 Groceries & Provisions',
     description: '',
   });
+  
+  // Image Upload State
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
 
@@ -22,25 +28,71 @@ export default function VendorUploadPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Handle local image file selection
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+    }
+  };
+
+  // Remove selected image preview
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setSuccess(false);
 
-    // Call state context function to insert into active shop list
+    let imageUrl = '📦'; // Fallback if no photo is selected
+
+    // 1. Upload Image to Supabase Storage (if selected)
+    if (imageFile) {
+      try {
+        const supabase = createClient();
+        const filePath = `products/${Date.now()}_${imageFile.name.replace(/\s+/g, '_')}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('product-images') // Make sure this bucket exists in your Supabase Dashboard
+          .upload(filePath, imageFile);
+
+        if (uploadError) {
+          throw new Error(uploadError.message);
+        }
+
+        // Retrieve public URL for rendered output
+        const { data: urlData } = supabase.storage
+          .from('product-images')
+          .getPublicUrl(filePath);
+
+        imageUrl = urlData.publicUrl;
+      } catch (err: any) {
+        alert(`Image upload failed: ${err.message || err}`);
+        setIsSubmitting(false);
+        return;
+      }
+    }
+
+    // 2. Add product to context state
     addVendorProduct({
       name: formData.name,
       category: formData.category,
       price: parseFloat(formData.price),
       desc: formData.description,
-      img: '📦' // Fallback emoji
+      img: imageUrl,
     });
 
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setSuccess(true);
-      setFormData({ name: '', price: '', category: '🌾 Groceries & Provisions', description: '' });
-    }, 1000);
+    setIsSubmitting(false);
+    setSuccess(true);
+    
+    // Reset Form & Image State
+    setFormData({ name: '', price: '', category: '🌾 Groceries & Provisions', description: '' });
+    setImageFile(null);
+    setImagePreview(null);
   };
 
   return (
@@ -97,7 +149,7 @@ export default function VendorUploadPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Product Name */}
+            {/* Product Title */}
             <div>
               <label htmlFor="name" className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                 Product Title
@@ -112,6 +164,42 @@ export default function VendorUploadPage() {
                 placeholder="e.g. Cooperative Rice Scheme - 25kg"
                 className="w-full text-xs font-semibold text-slate-900 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 focus:border-emerald-500 transition"
               />
+            </div>
+
+            {/* Product Image Field */}
+            <div>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                Product Image
+              </label>
+              
+              <div className="flex items-center gap-4">
+                {imagePreview ? (
+                  <div className="relative w-24 h-24 rounded-2xl overflow-hidden border border-slate-200 group">
+                    <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      className="absolute top-1 right-1 bg-slate-900/80 hover:bg-slate-900 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] transition"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-200 rounded-2xl cursor-pointer hover:bg-slate-50 transition">
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                      <span className="text-2xl mb-1">📸</span>
+                      <p className="text-xs text-slate-600 font-medium">Click to upload product photo</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">PNG, JPG, or WEBP (MAX. 5MB)</p>
+                    </div>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleImageChange} 
+                      className="hidden" 
+                    />
+                  </label>
+                )}
+              </div>
             </div>
 
             {/* Price & Category Grid */}
@@ -181,9 +269,16 @@ export default function VendorUploadPage() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white rounded-xl text-xs font-bold shadow-sm transition"
+                className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center justify-center gap-2"
               >
-                {isSubmitting ? 'Uploading...' : 'Publish Product'}
+                {isSubmitting ? (
+                  <>
+                    <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>Publishing...</span>
+                  </>
+                ) : (
+                  'Publish Product'
+                )}
               </button>
             </div>
           </form>
@@ -192,4 +287,4 @@ export default function VendorUploadPage() {
       </div>
     </main>
   );
-}
+                  }
