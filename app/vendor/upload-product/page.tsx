@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useCoOp } from '../../CoOpState'; // Adjusted import path to reach your State hook
-import { createClient } from '@/utils/supabase/client'; // Adjust path if your helper lives in @/lib/supabase/client
+import { supabase } from '@/lib/supabase'; // Connected directly to your lib/supabase.ts file
 
 export default function VendorUploadPage() {
   const context = useCoOp();
@@ -53,7 +53,6 @@ export default function VendorUploadPage() {
     // 1. Upload Image to Supabase Storage (if selected)
     if (imageFile) {
       try {
-        const supabase = createClient();
         const filePath = `products/${Date.now()}_${imageFile.name.replace(/\s+/g, '_')}`;
 
         const { error: uploadError } = await supabase.storage
@@ -287,4 +286,4 @@ export default function VendorUploadPage() {
       </div>
     </main>
   );
-                  }
+          }
