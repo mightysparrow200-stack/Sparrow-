@@ -11,6 +11,22 @@ interface Profile {
   wallet_balance?: number;
 }
 
+interface Vendor {
+  id: string;
+  business_name: string;
+  cac_number?: string;
+  contact_person?: string;
+  business_email?: string;
+  phone?: string;
+  primary_category?: string;
+  min_coop_discount?: string;
+  naira_payout_bank?: string;
+  naira_account_number?: string;
+  is_verified?: boolean;
+  status?: string;
+  created_at?: string;
+}
+
 interface Order {
   id: string;
   total_amount: number;
@@ -38,7 +54,7 @@ export default function AdminPage() {
   // Database lists
   const [pendingOrders, setPendingOrders] = useState<Order[]>([]);
   const [members, setMembers] = useState<Profile[]>([]);
-  const [vendors, setVendors] = useState<Profile[]>([]);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
   
   // UI Tabs
   const [activeTab, setActiveTab] = useState<'approvals' | 'members' | 'vendors'>('approvals');
@@ -51,7 +67,7 @@ export default function AdminPage() {
       setLoading(true);
       if (!supabase) return;
 
-      // A. Fetch Profiles & Wallets to aggregate stats & list members
+      // A. Fetch Profiles & Wallets
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('*');
@@ -63,6 +79,14 @@ export default function AdminPage() {
       if (profilesError) throw profilesError;
       if (walletsError) throw walletsError;
 
+      // Fetch Vendors directly from the 'vendors' table
+      const { data: vendorsData, error: vendorsError } = await supabase
+        .from('vendors')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (vendorsError) console.error('Error fetching vendors table:', vendorsError);
+
       // Merge wallet balances into profiles
       const enrichedProfiles: Profile[] = (profilesData || []).map((prof) => {
         const userWallet = (walletsData || []).find((w) => w.user_id === prof.id);
@@ -73,7 +97,7 @@ export default function AdminPage() {
       });
 
       setMembers(enrichedProfiles);
-      setVendors(enrichedProfiles.filter((p) => p.role === 'vendor'));
+      setVendors(vendorsData || []);
 
       // B. Fetch Pending Orders
       const { data: ordersData, error: ordersError } = await supabase
@@ -95,12 +119,12 @@ export default function AdminPage() {
       if (ordersError) throw ordersError;
       setPendingOrders((ordersData as any) || []);
 
-      // C. Calculate Calculations & Treasury Aggregations
+      // C. Treasury Aggregations
       const totalWalletsSum = (walletsData || []).reduce((sum, w) => sum + Number(w.balance), 0);
       
       setStats({
-        totalPoolAssets: totalWalletsSum * 1.5, // Total asset pooling metric (multiplied for asset leverage representation)
-        availableLiquidity: totalWalletsSum,   // Cash directly sitting in client wallets
+        totalPoolAssets: totalWalletsSum * 1.5,
+        availableLiquidity: totalWalletsSum,
         totalMembers: profilesData?.length || 0,
         pendingTasksCount: ordersData?.length || 0,
       });
@@ -116,7 +140,7 @@ export default function AdminPage() {
     fetchAdminData();
   }, []);
 
-  // 2. Handle Approving a Pending Order
+  // 2. Handle Approving an Order
   const handleApproveOrder = async (orderId: string) => {
     try {
       setActionLoading(orderId);
@@ -129,7 +153,6 @@ export default function AdminPage() {
 
       if (error) throw error;
 
-      // Update UI state locally
       setPendingOrders((prev) => prev.filter((o) => o.id !== orderId));
       setStats((prev) => ({ ...prev, pendingTasksCount: prev.pendingTasksCount - 1 }));
       
@@ -142,13 +165,12 @@ export default function AdminPage() {
     }
   };
 
-  // 3. Handle Declining & Refunding a Pending Order
+  // 3. Handle Declining & Refunding an Order
   const handleDeclineOrder = async (order: Order) => {
     try {
       setActionLoading(order.id);
       if (!supabase) return;
 
-      // A. Fetch current member balance to restore funds safely
       const { data: wallet, error: walletError } = await supabase
         .from('wallets')
         .select('balance')
@@ -159,7 +181,6 @@ export default function AdminPage() {
 
       const restoredBalance = Number(wallet.balance) + Number(order.total_amount);
 
-      // B. Update Wallet balance
       const { error: refundError } = await supabase
         .from('wallets')
         .update({ balance: restoredBalance })
@@ -167,7 +188,6 @@ export default function AdminPage() {
 
       if (refundError) throw refundError;
 
-      // C. Update Order state to cancelled
       const { error: orderError } = await supabase
         .from('orders')
         .update({ status: 'cancelled' })
@@ -175,7 +195,6 @@ export default function AdminPage() {
 
       if (orderError) throw orderError;
 
-      // Update UI list
       setPendingOrders((prev) => prev.filter((o) => o.id !== order.id));
       setStats((prev) => ({
         ...prev,
@@ -192,7 +211,7 @@ export default function AdminPage() {
     }
   };
 
-  // 4. Handle Updating Roles (Admin Control)
+  // 4. Handle Updating Roles
   const handleChangeUserRole = async (userId: string, newRole: string) => {
     try {
       if (!supabase) return;
@@ -203,15 +222,9 @@ export default function AdminPage() {
 
       if (error) throw error;
       
-      // Update local state
       setMembers((prev) =>
         prev.map((m) => (m.id === userId ? { ...m, role: newRole } : m))
       );
-      setVendors(members.filter((m) => m.id !== userId && m.role === 'vendor'));
-      if (newRole === 'vendor') {
-        const target = members.find((m) => m.id === userId);
-        if (target) setVendors((prev) => [...prev, { ...target, role: 'vendor' }]);
-      }
 
       setSuccessMessage('Member profile role changed successfully.');
       setTimeout(() => setSuccessMessage(''), 3000);
@@ -230,7 +243,6 @@ export default function AdminPage() {
       if (!supabase) return;
       setActionLoading('dividends');
 
-      // Loop over and distribute dividend payments to each wallet in the system
       const { data: wallets, error: fetchErr } = await supabase.from('wallets').select('*');
       if (fetchErr) throw fetchErr;
 
@@ -244,7 +256,7 @@ export default function AdminPage() {
 
       setSuccessMessage(`Successfully processed & distributed a ${rate}% dividend across active member wallets!`);
       setDividendRate('');
-      fetchAdminData(); // Refresh UI totals
+      fetchAdminData();
     } catch (err) {
       console.error('Error distributing system yield:', err);
     } finally {
@@ -421,22 +433,50 @@ export default function AdminPage() {
                 <p className="text-xs text-gray-400 mb-4">Authorize marketplace distribution channels and verify affiliate businesses.</p>
                 
                 {vendors.length > 0 ? (
-                  <div className="divide-y divide-gray-150 space-y-3">
+                  <div className="space-y-4">
                     {vendors.map((vendor) => (
-                      <div key={vendor.id} className="flex items-center justify-between pt-3 first:pt-0">
-                        <div>
-                          <div className="text-sm font-bold text-slate-950">{vendor.full_name}</div>
-                          <div className="text-xs text-gray-400 mt-0.5">{vendor.email}</div>
+                      <div key={vendor.id} className="p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="text-sm font-bold text-slate-950">
+                            {vendor.business_name || 'Unnamed Business'}
+                          </div>
+                          <span className="bg-blue-50 text-blue-700 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
+                            {vendor.status || 'Pending Verification'}
+                          </span>
                         </div>
-                        <span className="bg-blue-50 text-blue-700 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
-                          Verified Vendor
-                        </span>
+
+                        <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 pt-2 border-t border-gray-200">
+                          <div>
+                            <span className="font-semibold text-gray-400 block">CAC Reg No:</span> 
+                            {vendor.cac_number || 'N/A'}
+                          </div>
+                          <div>
+                            <span className="font-semibold text-gray-400 block">Contact Person:</span> 
+                            {vendor.contact_person || 'N/A'}
+                          </div>
+                          <div>
+                            <span className="font-semibold text-gray-400 block">Email:</span> 
+                            {vendor.business_email || 'N/A'}
+                          </div>
+                          <div>
+                            <span className="font-semibold text-gray-400 block">Category:</span> 
+                            {vendor.primary_category || 'N/A'}
+                          </div>
+                          <div>
+                            <span className="font-semibold text-gray-400 block">Co-Op Discount:</span> 
+                            {vendor.min_coop_discount ? `${vendor.min_coop_discount}%` : 'N/A'}
+                          </div>
+                          <div>
+                            <span className="font-semibold text-gray-400 block">Payout Account:</span> 
+                            {vendor.naira_payout_bank ? `${vendor.naira_payout_bank} - ${vendor.naira_account_number}` : 'N/A'}
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>
                 ) : (
                   <div className="text-center py-8 bg-gray-50/50 border border-dashed border-gray-200 rounded-xl">
-                    <p className="text-xs text-gray-400 font-medium">No system accounts are currently flagged as vendors.</p>
+                    <p className="text-xs text-gray-400 font-medium">No vendor applications submitted yet.</p>
                   </div>
                 )}
               </div>
@@ -444,7 +484,7 @@ export default function AdminPage() {
 
           </div>
 
-          {/* TASK 2: REVENUE DISTRIBUTION PANEL (RIGHT COLUMN) */}
+          {/* REVENUE DISTRIBUTION PANEL */}
           <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm h-fit">
             <h3 className="font-serif text-lg text-slate-950 mb-1">Broadcast Dividends</h3>
             <p className="text-xs text-gray-400 mb-4">Distribute yields securely across all active user wallets.</p>
@@ -487,4 +527,4 @@ export default function AdminPage() {
 
     </div>
   );
-      }
+}
