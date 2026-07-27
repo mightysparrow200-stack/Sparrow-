@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase'; // Ensures clean URL initialization
+import { supabase } from '../../../lib/supabase';
 
 export default function VendorOnboarding() {
   const router = useRouter();
