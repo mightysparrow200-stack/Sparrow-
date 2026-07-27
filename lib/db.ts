@@ -1,43 +1,56 @@
-// Simple in-memory shared database for development
+import { createClient } from '@supabase/supabase-js'
+
+// Initialize Supabase client
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
 export interface Product {
-  id: string;
+  id?: string;
   name: string;
   category: string;
   price: number;
   stock: number;
   description: string;
-  image: string; // Emoji or image URL
-  vendorName: string;
+  image: string;
+  vendorName?: string;
 }
 
-export let marketplaceProducts: Product[] = [
-  {
-    id: "PROD-101",
-    name: "Cooperative Rice Scheme - 25kg",
-    category: "Groceries",
-    price: 30000,
-    stock: 42,
-    description: "Premium parboiled rice distributed directly through the cooperative network.",
-    image: "🌾",
-    vendorName: "Mighty Sparrow Agribusiness"
-  },
-  {
-    id: "PROD-102",
-    name: "Premium Member Polo Shirt (L)",
-    category: "Apparel",
-    price: 15000,
-    stock: 12,
-    description: "Official customized high-quality cotton polo shirt for cooperative alumni.",
-    image: "👕",
-    vendorName: "Alumni Merch Desk"
-  }
-];
+// 1. Fetch products directly from Supabase
+export async function getProducts() {
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .order('created_at', { ascending: false })
 
-export const addProduct = (product: Omit<Product, 'id'>) => {
-  const newProduct = {
-    ...product,
-    id: `PROD-${Math.floor(1000 + Math.random() * 9000)}`
-  };
-  marketplaceProducts.unshift(newProduct); // Add to the top of the list
-  return newProduct;
-};
+  if (error) {
+    console.error('Error fetching products:', error.message)
+    return []
+  }
+  return data
+}
+
+// 2. Insert new product directly into Supabase
+export async function addProduct(product: Omit<Product, 'id'>) {
+  const { data, error } = await supabase
+    .from('products')
+    .insert([
+      {
+        name: product.name,
+        category: product.category,
+        price: product.price,
+        stock: product.stock,
+        description: product.description,
+        image: product.image
+      }
+    ])
+    .select()
+
+  if (error) {
+    console.error('Error adding product:', error.message)
+    throw error
+  }
+
+  return data ? data[0] : null
+}
