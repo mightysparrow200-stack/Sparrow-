@@ -233,7 +233,40 @@ export default function AdminPage() {
     }
   };
 
-  // 5. Yield Distributions
+  // 5. Handle Vendor Verification Status Updates
+  const handleUpdateVendorStatus = async (vendorId: string, newStatus: string) => {
+    try {
+      setActionLoading(vendorId);
+      if (!supabase) return;
+
+      const { error } = await supabase
+        .from('vendors')
+        .update({ 
+          status: newStatus, 
+          is_verified: newStatus === 'approved' 
+        })
+        .eq('id', vendorId);
+
+      if (error) throw error;
+
+      setVendors((prev) =>
+        prev.map((v) =>
+          v.id === vendorId
+            ? { ...v, status: newStatus, is_verified: newStatus === 'approved' }
+            : v
+        )
+      );
+
+      setSuccessMessage(`Vendor application updated to ${newStatus.toUpperCase()}.`);
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err) {
+      console.error('Error updating vendor verification state:', err);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // 6. Yield Distributions
   const handleDistributeDividends = async (e: React.FormEvent) => {
     e.preventDefault();
     const rate = parseFloat(dividendRate);
@@ -435,13 +468,17 @@ export default function AdminPage() {
                 {vendors.length > 0 ? (
                   <div className="space-y-4">
                     {vendors.map((vendor) => (
-                      <div key={vendor.id} className="p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-2">
+                      <div key={vendor.id} className="p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-3">
                         <div className="flex items-center justify-between">
                           <div className="text-sm font-bold text-slate-950">
                             {vendor.business_name || 'Unnamed Business'}
                           </div>
-                          <span className="bg-blue-50 text-blue-700 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
-                            {vendor.status || 'Pending Verification'}
+                          <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider ${
+                            vendor.status === 'approved' ? 'bg-emerald-50 text-emerald-700' :
+                            vendor.status === 'rejected' ? 'bg-red-50 text-red-700' :
+                            'bg-amber-50 text-amber-700'
+                          }`}>
+                            {vendor.status || 'Pending'}
                           </span>
                         </div>
 
@@ -470,6 +507,24 @@ export default function AdminPage() {
                             <span className="font-semibold text-gray-400 block">Payout Account:</span> 
                             {vendor.naira_payout_bank ? `${vendor.naira_payout_bank} - ${vendor.naira_account_number}` : 'N/A'}
                           </div>
+                        </div>
+
+                        {/* VENDOR ACTION BUTTONS */}
+                        <div className="flex justify-end gap-2 pt-2 border-t border-gray-200">
+                          <button
+                            disabled={actionLoading !== null}
+                            onClick={() => handleUpdateVendorStatus(vendor.id, 'rejected')}
+                            className="border border-red-200 hover:bg-red-50 text-red-600 text-xs font-semibold px-3 py-1.5 rounded-lg transition"
+                          >
+                            Reject
+                          </button>
+                          <button
+                            disabled={actionLoading !== null}
+                            onClick={() => handleUpdateVendorStatus(vendor.id, 'approved')}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition"
+                          >
+                            {actionLoading === vendor.id ? 'Updating...' : 'Approve Vendor'}
+                          </button>
                         </div>
                       </div>
                     ))}
