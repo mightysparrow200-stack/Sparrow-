@@ -14,10 +14,16 @@ export default async function DashboardPage() {
     redirect('/login');
   }
 
-  // 2. Fetch Profile and Wallet data in parallel
-  const [{ data: profile }, { data: wallet }] = await Promise.all([
+  // 2. Fetch Profile, Wallet, and Recent Transactions in parallel
+  const [{ data: profile }, { data: wallet }, { data: transactions }] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', user.id).single(),
     supabase.from('wallets').select('*').eq('user_id', user.id).single(),
+    supabase
+      .from('wallet_transactions')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(5),
   ]);
 
   const memberBalance = wallet?.balance ? Number(wallet.balance) : 0;
@@ -28,10 +34,10 @@ export default async function DashboardPage() {
       {/* PORTAL HEADER */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl md:text-3xl font-serif text-slate-950">
-            Alumni & Community Portal
+          <h1 className="text-2xl md:text-3xl font-serif text-slate-950 font-bold">
+            Alumni &amp; Community Portal
           </h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="text-xs md:text-sm text-slate-500 mt-1">
             Access your personalized cooperative equity, track pool shares, and manage savings.
           </p>
         </div>
@@ -62,7 +68,7 @@ export default async function DashboardPage() {
           <div className="text-2xl font-extrabold text-emerald-600 mt-2">
             ₦{memberBalance.toLocaleString('en-NG', { minimumFractionDigits: 2 })}
           </div>
-          <p className="text-xs text-slate-400 mt-3">
+          <p className="text-xs text-slate-400 mt-3 leading-relaxed">
             Available for instant use inside the Cooperative Marketplace.
           </p>
         </div>
@@ -75,7 +81,7 @@ export default async function DashboardPage() {
           <div className="text-2xl font-extrabold text-slate-900 mt-2">
             1,250 <span className="text-xs font-medium text-slate-400">Shares</span>
           </div>
-          <p className="text-xs text-slate-400 mt-3">
+          <p className="text-xs text-slate-400 mt-3 leading-relaxed">
             Representing an active 0.12% stake in community physical assets.
           </p>
         </div>
@@ -88,7 +94,7 @@ export default async function DashboardPage() {
           <div className="text-2xl font-extrabold text-amber-500 mt-2">
             ₦75,400.00
           </div>
-          <p className="text-xs text-slate-400 mt-3">
+          <p className="text-xs text-slate-400 mt-3 leading-relaxed">
             Calculated quarterly based on total marketplace external trade yields.
           </p>
         </div>
@@ -107,7 +113,7 @@ export default async function DashboardPage() {
           <div className="pt-2 space-y-2 border-t border-slate-100 text-xs">
             <div className="flex justify-between text-slate-600">
               <span>Account Email:</span>
-              <span className="font-semibold text-slate-900">{user.email}</span>
+              <span className="font-semibold text-slate-900 truncate max-w-[150px]">{user.email}</span>
             </div>
             <div className="flex justify-between text-slate-600">
               <span>Member ID:</span>
@@ -127,17 +133,49 @@ export default async function DashboardPage() {
           </p>
 
           <div className="space-y-3">
-            <div className="flex justify-between items-center p-3 bg-slate-50 border border-slate-100 rounded-xl text-xs">
-              <div>
-                <span className="font-bold text-slate-900 block">
-                  Initial Welcome Capital Grant
-                </span>
-                <span className="text-[10px] text-slate-400">
-                  Co-Op Onboarding Credit • Verified
-                </span>
+            {transactions && transactions.length > 0 ? (
+              transactions.map((tx) => (
+                <div
+                  key={tx.id}
+                  className="flex justify-between items-center p-3 bg-slate-50 border border-slate-100 rounded-xl text-xs"
+                >
+                  <div>
+                    <span className="font-bold text-slate-900 block">
+                      {tx.description || 'Wallet Transaction'}
+                    </span>
+                    <span className="text-[10px] text-slate-400">
+                      {new Date(tx.created_at).toLocaleDateString('en-NG', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                      })}
+                    </span>
+                  </div>
+                  <span
+                    className={`font-bold ${
+                      tx.amount > 0 ? 'text-emerald-600' : 'text-rose-600'
+                    }`}
+                  >
+                    {tx.amount > 0 ? '+' : ''}₦
+                    {Math.abs(Number(tx.amount)).toLocaleString('en-NG', {
+                      minimumFractionDigits: 2,
+                    })}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <div className="flex justify-between items-center p-3 bg-slate-50 border border-slate-100 rounded-xl text-xs">
+                <div>
+                  <span className="font-bold text-slate-900 block">
+                    Initial Welcome Capital Grant
+                  </span>
+                  <span className="text-[10px] text-slate-400">
+                    Co-Op Onboarding Credit • Verified
+                  </span>
+                </div>
+                <span className="font-bold text-emerald-600">+₦1,000.00</span>
               </div>
-              <span className="font-bold text-emerald-600">+₦1,000.00</span>
-            </div>
+            )}
           </div>
         </div>
       </div>
