@@ -70,8 +70,7 @@ function ShopPage() {
       id: product.id,
       title: product.title,
       price: finalPrice,
-      image_url: product.image_url ?? undefined, // Converts null -> undefined for type safety
-      quantity: 1,
+      image_url: product.image_url ?? undefined,
     });
 
     setAddedId(product.id);
