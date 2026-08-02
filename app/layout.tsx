@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { Inter, Playfair_Display } from 'next/font/google';
-import Navbar from '@/components/Navbar';
+import Header from '@/components/Header'; // 👈 CHANGED FROM Navbar TO Header
 import { CoOpProvider } from './CoOpState';
 import './globals.css';
 
@@ -29,8 +29,8 @@ export default function RootLayout({
       <body className="bg-slate-50 text-slate-900 font-sans min-h-screen flex flex-col justify-between selection:bg-coopGold/30">
         
         <CoOpProvider>
-          {/* SINGLE DYNAMIC NAVBAR */}
-          <Navbar />
+          {/* ONLY ONE HEADER INSTANCE IN THE ENTIRE APP */}
+          <Header />
 
           {/* PAGE CONTENT CONTAINER */}
           <main className="flex-grow">
