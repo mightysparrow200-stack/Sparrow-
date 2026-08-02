@@ -2,31 +2,77 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 import { useCoOp } from './CoOpState';
 
 export default function Header() {
   const context = useCoOp();
+  const router = useRouter();
+
+  const [user, setUser] = useState<any>(null);
+  const [role, setRole] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
+
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Safe fallbacks if context isn't fully initialized
-  const isMember = context?.isMember ?? false;
+  // Cart & Fallbacks from Context
   const memberBalance = context?.memberBalance ?? 0;
   const cart = context?.cart ?? [];
   const cartCount = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
 
-  // Close dropdown on outside click or Escape key
+  // 1. Unified Auth State Listener
+  useEffect(() => {
+    let isMounted = true;
+
+    const syncUser = async (sessionUser: any) => {
+      if (!sessionUser) {
+        if (isMounted) {
+          setUser(null);
+          setRole(null);
+          setLoading(false);
+        }
+        return;
+      }
+
+      if (isMounted) setUser(sessionUser);
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', sessionUser.id)
+        .single();
+
+      if (isMounted) {
+        setRole(profile?.role || 'member');
+        setLoading(false);
+      }
+    };
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      syncUser(session?.user || null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      syncUser(session?.user || null);
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // 2. Outside Click & Escape Key Handlers
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     }
-
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        setIsOpen(false);
-      }
+      if (event.key === 'Escape') setIsOpen(false);
     }
 
     document.addEventListener('mousedown', handleClickOutside);
@@ -38,15 +84,24 @@ export default function Header() {
     };
   }, []);
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setRole(null);
+    setIsOpen(false);
+    router.push('/login');
+    router.refresh();
+  };
+
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-slate-100 px-4 py-3 font-sans shadow-sm">
+    <header className="sticky top-0 z-50 bg-white border-b border-slate-200 px-4 py-3 font-sans shadow-sm">
       <div className="max-w-6xl mx-auto flex items-center justify-between relative h-10">
         
-        {/* Brand Logo */}
-        <Link href="/" className="flex items-center gap-2 shrink-0 group" title="Go to Home">
-          <span className="text-3xl transition-transform group-hover:scale-105 duration-200">🦅</span>
+        {/* BRAND LOGO */}
+        <Link href="/" className="flex items-center gap-2 shrink-0 group">
+          <span className="text-2xl transition-transform group-hover:scale-105 duration-200">🦅</span>
           <div>
-            <span className="block text-sm font-bold tracking-tight text-slate-900 leading-tight group-hover:text-emerald-600 transition-colors">
+            <span className="block text-sm font-bold text-slate-900 leading-tight group-hover:text-emerald-600 transition-colors">
               Mighty Sparrow
             </span>
             <span className="block text-[9px] font-black tracking-widest text-emerald-600 uppercase leading-none">
@@ -55,11 +110,11 @@ export default function Header() {
           </div>
         </Link>
 
-        {/* Dynamic Controls */}
+        {/* RIGHT ACTION CONTROLS */}
         <div className="flex items-center gap-3">
           
-          {/* Wallet Balance Display (Active Members Only) */}
-          {isMember && (
+          {/* WALLET DISPLAY (Active Members Only) */}
+          {user && (
             <div className="hidden sm:flex flex-col items-end bg-emerald-50/70 border border-emerald-100/50 px-3 py-1 rounded-xl">
               <span className="text-[8px] uppercase tracking-wider text-emerald-600 font-bold leading-tight">
                 Co-Op Wallet
@@ -70,183 +125,148 @@ export default function Header() {
             </div>
           )}
 
-          {/* Cart Icon with Badge */}
+          {/* CART TRIGGER */}
           <Link 
             href="/cart" 
-            className="relative p-2.5 bg-slate-50 hover:bg-slate-100 rounded-xl transition text-slate-700"
+            className="relative p-2 bg-slate-50 hover:bg-slate-100 rounded-xl transition text-slate-700"
             aria-label="View Cart"
           >
-            <span className="text-lg">🛒</span>
+            <span className="text-base">🛒</span>
             {cartCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-emerald-600 text-white text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-white animate-pulse">
+              <span className="absolute -top-1 -right-1 bg-emerald-600 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border-2 border-white animate-pulse">
                 {cartCount}
               </span>
             )}
           </Link>
 
-          {/* Explore Portal Dropdown Container */}
-          <div className="relative" ref={menuRef}>
-            <button
-              type="button"
-              onClick={() => setIsOpen((prev) => !prev)}
-              aria-expanded={isOpen}
-              aria-haspopup="true"
-              className="flex items-center gap-3 border border-slate-200 hover:border-slate-300 rounded-2xl px-4 py-2 bg-white transition text-left focus:outline-none focus:ring-2 focus:ring-emerald-500/20 select-none h-10"
-            >
-              <span className="text-xs font-bold text-slate-800 tracking-wide">
-                Explore Portal
-              </span>
-              <span className={`text-slate-400 text-xs transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>
-                ▼
-              </span>
-            </button>
+          {/* AUTH & EXPLORE DROPDOWN */}
+          {loading ? (
+            <div className="w-20 h-9 bg-slate-100 animate-pulse rounded-xl" />
+          ) : !user ? (
+            /* GUEST NAVIGATION BUTTONS */
+            <div className="flex items-center gap-2">
+              <Link 
+                href="/shop" 
+                className="text-xs font-semibold text-slate-600 hover:text-slate-900 px-2 py-1.5 transition"
+              >
+                Store
+              </Link>
+              <Link 
+                href="/login" 
+                className="text-xs font-semibold text-slate-600 hover:text-slate-900 px-2 py-1.5 transition"
+              >
+                Sign In
+              </Link>
+              <Link
+                href="/login?tab=signup"
+                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition"
+              >
+                Join Coop
+              </Link>
+            </div>
+          ) : (
+            /* LOGGED-IN EXPLORE PORTAL DROPDOWN */
+            <div className="relative" ref={menuRef}>
+              <button
+                type="button"
+                onClick={() => setIsOpen((prev) => !prev)}
+                className="flex items-center gap-2 border border-slate-200 hover:border-slate-300 rounded-xl px-3 py-2 bg-white transition focus:outline-none select-none h-9 text-xs font-bold text-slate-800"
+              >
+                <span>Explore Portal</span>
+                <span className={`text-slate-400 text-[10px] transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>
+                  ▼
+                </span>
+              </button>
 
-            {/* Dropdown Menu */}
-            {isOpen && (
-              <div className="absolute right-0 mt-3 w-80 max-h-[85vh] overflow-y-auto bg-white border border-slate-100 rounded-2xl shadow-2xl z-50 divide-y divide-slate-100 font-sans">
-                
-                {/* SECTION 1: PERSONAL PORTAL */}
-                <div className="py-2">
-                  <div className="px-5 py-2">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                      Personal Portal
-                    </span>
-                  </div>
-
-                  <Link
-                    href="/profile"
-                    onClick={() => setIsOpen(false)}
-                    className="flex items-start gap-4 px-5 py-3 hover:bg-slate-50 transition"
-                  >
-                    <span className="text-2xl mt-0.5 shrink-0">👤</span>
-                    <div>
-                      <span className="block text-sm font-bold text-slate-800 leading-tight">
-                        My Profile
-                      </span>
-                      <span className="block text-xs text-slate-500 mt-1 leading-snug">
-                        Manage your profile details and settings
-                      </span>
-                    </div>
-                  </Link>
+              {isOpen && (
+                <div className="absolute right-0 mt-3 w-72 max-h-[85vh] overflow-y-auto bg-white border border-slate-100 rounded-2xl shadow-2xl z-50 divide-y divide-slate-100 font-sans">
                   
-                  <Link
-                    href="/dashboard"
-                    onClick={() => setIsOpen(false)}
-                    className="flex items-start gap-4 px-5 py-3 hover:bg-slate-50 transition"
-                  >
-                    <span className="text-2xl mt-0.5 shrink-0">📊</span>
-                    <div>
-                      <span className="block text-sm font-bold text-slate-800 leading-tight">
-                        Member Dashboard
-                      </span>
-                      <span className="block text-xs text-slate-500 mt-1 leading-snug">
-                        Manage savings &amp; track rewards
-                      </span>
-                    </div>
-                  </Link>
-
-                  <Link
-                    href="/wallet"
-                    onClick={() => setIsOpen(false)}
-                    className="flex items-start gap-4 px-5 py-3 hover:bg-slate-50 transition"
-                  >
-                    <span className="text-2xl mt-0.5 shrink-0">💳</span>
-                    <div>
-                      <span className="block text-sm font-bold text-slate-800 leading-tight">
-                        Co-op Wallet
-                      </span>
-                      <span className="block text-xs text-slate-500 mt-1 leading-snug">
-                        Fund security account &amp; view transactions
-                      </span>
-                    </div>
-                  </Link>
-                </div>
-
-                {/* SECTION 2: COMMERCE & BENEFITS */}
-                <div className="py-2">
-                  <div className="px-5 py-2">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                      Commerce &amp; Benefits
+                  {/* PORTAL NAVIGATION */}
+                  <div className="py-2">
+                    <span className="block px-4 py-1 text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                      Personal Portal ({role || 'Member'})
                     </span>
+
+                    {role === 'vendor' ? (
+                      <>
+                        <Link
+                          href="/vendor"
+                          onClick={() => setIsOpen(false)}
+                          className="flex items-center gap-3 px-4 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50"
+                        >
+                          <span>🏪</span> Vendor Portal
+                        </Link>
+                        <Link
+                          href="/vendor/products"
+                          onClick={() => setIsOpen(false)}
+                          className="flex items-center gap-3 px-4 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50"
+                        >
+                          <span>📦</span> My Products
+                        </Link>
+                      </>
+                    ) : (
+                      <>
+                        <Link
+                          href="/dashboard"
+                          onClick={() => setIsOpen(false)}
+                          className="flex items-center gap-3 px-4 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50"
+                        >
+                          <span>📊</span> Member Dashboard
+                        </Link>
+                        <Link
+                          href="/wallet"
+                          onClick={() => setIsOpen(false)}
+                          className="flex items-center gap-3 px-4 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50"
+                        >
+                          <span>💳</span> Co-Op Wallet
+                        </Link>
+                        <Link
+                          href="/orders"
+                          onClick={() => setIsOpen(false)}
+                          className="flex items-center gap-3 px-4 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50"
+                        >
+                          <span>📦</span> My Orders
+                        </Link>
+                      </>
+                    )}
                   </div>
 
-                  <Link
-                    href="/shop"
-                    onClick={() => setIsOpen(false)}
-                    className="flex items-start gap-4 px-5 py-3 hover:bg-slate-50 transition"
-                  >
-                    <span className="text-2xl mt-0.5 shrink-0">🛍️</span>
-                    <div>
-                      <span className="block text-sm font-bold text-slate-800 leading-tight">
-                        Marketplace Store
-                      </span>
-                      <span className="block text-xs text-slate-500 mt-1 leading-snug">
-                        Browse general merchandise &amp; deals
-                      </span>
-                    </div>
-                  </Link>
-
-                  <Link
-                    href="/orders"
-                    onClick={() => setIsOpen(false)}
-                    className="flex items-start gap-4 px-5 py-3 hover:bg-slate-50 transition"
-                  >
-                    <span className="text-2xl mt-0.5 shrink-0">📦</span>
-                    <div>
-                      <span className="block text-sm font-bold text-slate-800 leading-tight">
-                        My Orders
-                      </span>
-                      <span className="block text-xs text-slate-500 mt-1 leading-snug">
-                        Track shipments &amp; view invoices
-                      </span>
-                    </div>
-                  </Link>
-                </div>
-
-                {/* SECTION 3: JOIN OUR NETWORK */}
-                <div className="py-2">
-                  <div className="px-5 py-2">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                      Join Our Network
+                  {/* COMMERCE LINKS */}
+                  <div className="py-2">
+                    <span className="block px-4 py-1 text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                      Marketplace
                     </span>
+                    <Link
+                      href="/shop"
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50"
+                    >
+                      <span>🛍️</span> Marketplace Store
+                    </Link>
+                    <Link
+                      href="/profile"
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50"
+                    >
+                      <span>👤</span> Profile Settings
+                    </Link>
                   </div>
 
-                  <Link
-                    href="/onboard/member"
-                    onClick={() => setIsOpen(false)}
-                    className="flex items-start gap-4 px-5 py-3 hover:bg-slate-50 transition"
-                  >
-                    <span className="text-2xl mt-0.5 shrink-0">🎓</span>
-                    <div>
-                      <span className="block text-sm font-bold text-slate-800 leading-tight">
-                        Alumni Registration
-                      </span>
-                      <span className="block text-xs text-slate-500 mt-1 leading-snug">
-                        Apply to become a cooperative member
-                      </span>
-                    </div>
-                  </Link>
+                  {/* SIGN OUT ACTION */}
+                  <div className="p-2 bg-slate-50">
+                    <button
+                      type="button"
+                      onClick={handleSignOut}
+                      className="w-full text-left flex items-center gap-3 px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                    >
+                      <span>🚪</span> Sign Out
+                    </button>
+                  </div>
 
-                  <Link
-                    href="/onboard/vendor"
-                    onClick={() => setIsOpen(false)}
-                    className="flex items-start gap-4 px-5 py-3 hover:bg-slate-50 transition"
-                  >
-                    <span className="text-2xl mt-0.5 shrink-0">🤝</span>
-                    <div>
-                      <span className="block text-sm font-bold text-slate-800 leading-tight">
-                        Partner Vendor
-                      </span>
-                      <span className="block text-xs text-slate-500 mt-1 leading-snug">
-                        Apply to sell on the cooperative marketplace
-                      </span>
-                    </div>
-                  </Link>
                 </div>
-
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
         </div>
 
