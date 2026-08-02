@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { useCoOp } from './CoOpState';
+import { useCoOp } from '@/app/CoOpState';
 
 export default function Navbar() {
   const context = useCoOp();
