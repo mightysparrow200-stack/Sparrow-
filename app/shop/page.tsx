@@ -70,7 +70,7 @@ function ShopPage() {
       id: product.id,
       title: product.title,
       price: finalPrice,
-      image_url: product.image_url,
+      image_url: product.image_url ?? undefined, // Converts null -> undefined for type safety
       quantity: 1,
     });
 
@@ -174,7 +174,6 @@ function ShopPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
             {filteredProducts.map((product) => {
-              // Calculate discount: if DB record has member_price, use it; otherwise auto-apply 15% discount for members
               const explicitMemberPrice = product.member_price;
               const calculatedMemberPrice = Math.round(product.price * 0.85);
               const finalMemberPrice = explicitMemberPrice || calculatedMemberPrice;
