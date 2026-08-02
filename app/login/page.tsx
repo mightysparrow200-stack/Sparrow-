@@ -20,11 +20,10 @@ function AuthForm() {
   const [role, setRole] = useState<'member' | 'vendor'>('member');
 
   const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<any>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    // Keep tab in sync with URL query param if present
     const tabParam = searchParams.get('tab');
     if (tabParam === 'signup') {
       setActiveTab('signup');
@@ -46,13 +45,16 @@ function AuthForm() {
           password,
         });
 
-        if (error) throw error;
+        if (error) {
+          // Extract message string safely
+          setErrorMsg(error.message);
+          return;
+        }
 
-        // Redirect on successful login
         router.push('/dashboard');
         router.refresh();
       } else {
-        // Sign up
+        // Sign up logic
         const { data: authData, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
@@ -65,10 +67,13 @@ function AuthForm() {
           },
         });
 
-        if (signUpError) throw signUpError;
+        if (signUpError) {
+          // Extract message string safely
+          setErrorMsg(signUpError.message);
+          return;
+        }
 
         if (authData.user) {
-          // Sync profile to database table
           const { error: profileError } = await supabase.from('profiles').upsert({
             id: authData.user.id,
             full_name: fullName,
@@ -86,7 +91,8 @@ function AuthForm() {
         }, 1200);
       }
     } catch (err: any) {
-      setErrorMsg(err.message || 'An unexpected error occurred.');
+      // Fallback string extraction for unexpected errors
+      setErrorMsg(err?.message || 'An unexpected authentication error occurred.');
     } finally {
       setLoading(false);
     }
@@ -140,9 +146,12 @@ function AuthForm() {
           </p>
         </div>
 
+        {/* SAFE ERROR BANNER RENDERING */}
         {errorMsg && (
           <div className="mb-4 p-3 bg-rose-50 border border-rose-100 rounded-xl text-xs font-medium text-rose-700">
-            {errorMsg}
+            {typeof errorMsg === 'string'
+              ? errorMsg
+              : errorMsg?.message || 'Authentication error. Please check your credentials.'}
           </div>
         )}
 
@@ -279,4 +288,4 @@ export default function LoginPage() {
       </Suspense>
     </div>
   );
-}
+                   }
