@@ -23,12 +23,19 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Check active session
+  // 1. Check active authenticated session
   const { data: { user } } = await supabase.auth.getUser()
   const url = request.nextUrl.clone()
 
-  // Protect portal routes if not logged in
-  if (!user && (url.pathname.startsWith('/vendor') || url.pathname.startsWith('/dashboard'))) {
+  // 2. Define all private paths
+  const protectedRoutes = ['/dashboard', '/wallet', '/orders', '/profile', '/vendor', '/onboard']
+  
+  const isProtectedRoute = protectedRoutes.some((path) =>
+    url.pathname.startsWith(path)
+  )
+
+  // 3. Redirect to /login if guest attempts to access any private route
+  if (!user && isProtectedRoute) {
     url.pathname = '/login'
     return NextResponse.redirect(url)
   }
@@ -38,8 +45,11 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/vendor/:path*',
     '/dashboard/:path*',
+    '/wallet/:path*',
+    '/orders/:path*',
+    '/profile/:path*',
+    '/vendor/:path*',
     '/onboard/:path*',
   ],
 }
