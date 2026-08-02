@@ -47,20 +47,19 @@ function AuthForm() {
         });
 
         if (error) {
-          // Catch string "{}" or empty errors and convert to readable text
           const msg =
             error.message && error.message !== '{}'
               ? error.message
               : 'Invalid login credentials or network issue.';
           setErrorMsg(msg);
+          setLoading(false);
           return;
         }
 
-        // Redirect on successful login
-        router.push('/dashboard');
-        router.refresh();
+        // Hard redirect on login to sync server session cookies
+        window.location.href = '/dashboard';
       } else {
-        // Sign up
+        // Sign up logic
         const { data: authData, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
@@ -74,12 +73,12 @@ function AuthForm() {
         });
 
         if (signUpError) {
-          // Filter out raw "{}" responses from Supabase
           const msg =
             signUpError.message && signUpError.message !== '{}'
               ? signUpError.message
               : 'Registration failed. Check if your account already exists or verify connection.';
           setErrorMsg(msg);
+          setLoading(false);
           return;
         }
 
@@ -96,10 +95,12 @@ function AuthForm() {
         }
 
         setSuccessMsg('Account created successfully! Redirecting...');
+
+        // Force browser redirect immediately to destination route
+        const targetUrl = role === 'vendor' ? '/vendor' : '/dashboard';
         setTimeout(() => {
-          router.push(role === 'vendor' ? '/vendor' : '/dashboard');
-          router.refresh();
-        }, 1200);
+          window.location.href = targetUrl;
+        }, 800);
       }
     } catch (err: any) {
       const fallbackMsg =
@@ -107,7 +108,6 @@ function AuthForm() {
           ? err.message
           : 'An unexpected authentication error occurred.';
       setErrorMsg(fallbackMsg);
-    } finally {
       setLoading(false);
     }
   };
@@ -160,7 +160,7 @@ function AuthForm() {
           </p>
         </div>
 
-        {/* CLEAN & SAFE ERROR DISPLAY */}
+        {/* ERROR DISPLAY */}
         {errorMsg && (
           <div className="mb-4 p-3 bg-rose-50 border border-rose-100 rounded-xl text-xs font-medium text-rose-700">
             {typeof errorMsg === 'string' && errorMsg !== '{}'
@@ -169,6 +169,7 @@ function AuthForm() {
           </div>
         )}
 
+        {/* SUCCESS BANNER */}
         {successMsg && (
           <div className="mb-4 p-3 bg-emerald-50 border border-emerald-100 rounded-xl text-xs font-medium text-emerald-700">
             {successMsg}
@@ -302,4 +303,4 @@ export default function LoginPage() {
       </Suspense>
     </div>
   );
-          }
+              }
