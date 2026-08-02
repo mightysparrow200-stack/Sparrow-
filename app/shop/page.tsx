@@ -1,7 +1,9 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useCoOp } from '../CoOpState';
+// If CoOpState is in your project root:
+import { useCoOp } from '@/CoOpState'; 
+// Note: If CoOpState is in lib/ or app/, adjust to '@/lib/CoOpState' or '@/app/CoOpState'
 
 const CORE_PRODUCTS = [
   { id: 1, name: 'Co-Op Tech Smart Backpack', category: 'Gear', price: 35000.00, desc: 'Water-resistant, anti-theft design with a built-in USB charging port.', img: '🎒' },
@@ -15,34 +17,33 @@ function ShopPage() {
 
   if (!context) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
+      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3 font-sans">
         <div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-xs text-gray-500 font-medium">Loading Marketplace...</p>
+        <p className="text-xs text-slate-500 font-medium">Loading Marketplace...</p>
       </div>
     );
   }
 
-  // FIXED: Removed setIsMember and safely provided a fallback for vendorProducts
   const { isMember, memberBalance, addToCart, vendorProducts = [] } = context;
-
-  // Merge core products with vendor-submitted ones
   const ALL_PRODUCTS = [...vendorProducts, ...CORE_PRODUCTS];
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8 animate-fade-in">
+    <div className="max-w-5xl mx-auto px-4 py-8 font-sans">
       
       {/* SHOP HEADER */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl md:text-3xl font-serif text-slate-950">Cooperative Marketplace</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-2xl md:text-3xl font-serif text-slate-950 font-bold">
+            Cooperative Marketplace
+          </h1>
+          <p className="text-xs md:text-sm text-slate-500 mt-1">
             Browse our catalog of general goods and premium products. Unlock co-op discounts on every item.
           </p>
         </div>
 
-        {/* FIXED: Replaced interactive state buttons with a secure status indicator */}
-        <div className="bg-white border border-gray-200 p-2 rounded-xl flex items-center gap-2 shadow-sm w-fit text-xs font-semibold">
-          <span className="text-gray-400">Account Type:</span>
+        {/* ACCOUNT STATUS BADGE */}
+        <div className="bg-white border border-slate-200 p-2 rounded-xl flex items-center gap-2 shadow-sm w-fit text-xs font-semibold">
+          <span className="text-slate-400">Account Type:</span>
           {isMember ? (
             <span className="bg-emerald-600 text-white px-3 py-1 rounded-lg shadow-sm">
               Alumni Member
@@ -58,8 +59,8 @@ function ShopPage() {
       {/* PRICING NOTIFICATION */}
       <div className={`p-3.5 rounded-xl border mb-8 text-xs flex items-center justify-between ${
         isMember 
-          ? 'bg-green-50/50 border-green-150 text-green-800' 
-          : 'bg-amber-50/50 border-amber-150 text-amber-800'
+          ? 'bg-emerald-50/50 border-emerald-200 text-emerald-800' 
+          : 'bg-amber-50/50 border-amber-200 text-amber-800'
       }`}>
         <div className="flex items-center gap-2">
           <span>{isMember ? '✨' : '🛍️'}</span>
@@ -70,33 +71,37 @@ function ShopPage() {
           </span>
         </div>
         {isMember && (
-          <span className="font-bold whitespace-nowrap bg-green-100 text-green-900 px-2 py-1 rounded-md">
+          <span className="font-bold whitespace-nowrap bg-emerald-100 text-emerald-900 px-2 py-1 rounded-md">
             Balance: ₦{memberBalance.toLocaleString('en-NG', { minimumFractionDigits: 2 })}
           </span>
         )}
       </div>
 
-      {/* CLEAN PRODUCT CATALOG GRID */}
+      {/* PRODUCT CATALOG GRID */}
       <div>
         <h2 className="font-serif text-lg text-slate-950 font-semibold mb-6">Featured Goods</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
           {ALL_PRODUCTS.map((product) => {
             const displayPrice = isMember ? product.price * 0.85 : product.price;
             return (
-              <div key={product.id} className="bg-white border border-gray-200 p-5 rounded-2xl shadow-sm flex flex-col justify-between hover:border-gray-300 hover:shadow-md transition">
+              <div key={product.id} className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm flex flex-col justify-between hover:border-slate-300 hover:shadow-md transition">
                 <div>
                   <div className="text-3xl mb-3">{product.img}</div>
                   <span className="text-[10px] font-bold text-amber-500 uppercase tracking-wider">{product.category}</span>
                   <h3 className="font-serif text-sm text-slate-950 font-bold mt-1 line-clamp-1">{product.name}</h3>
-                  <p className="text-xs text-gray-500 mt-1.5 leading-relaxed line-clamp-2">{product.desc}</p>
+                  <p className="text-xs text-slate-500 mt-1.5 leading-relaxed line-clamp-2">{product.desc}</p>
                 </div>
                 
-                <div className="flex items-center justify-between mt-5 pt-3 border-t border-gray-100">
+                <div className="flex items-center justify-between mt-5 pt-3 border-t border-slate-100">
                   <div>
                     {isMember && (
-                      <span className="text-[10px] text-gray-400 line-through block">₦{product.price.toLocaleString('en-NG')}</span>
+                      <span className="text-[10px] text-slate-400 line-through block">
+                        ₦{product.price.toLocaleString('en-NG')}
+                      </span>
                     )}
-                    <span className="text-base font-extrabold text-slate-900">₦{displayPrice.toLocaleString('en-NG', { minimumFractionDigits: 2 })}</span>
+                    <span className="text-base font-extrabold text-slate-900">
+                      ₦{displayPrice.toLocaleString('en-NG', { minimumFractionDigits: 2 })}
+                    </span>
                   </div>
                   <button
                     onClick={() => addToCart(product)}
