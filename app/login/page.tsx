@@ -20,10 +20,11 @@ function AuthForm() {
   const [role, setRole] = useState<'member' | 'vendor'>('member');
 
   const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<any>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   useEffect(() => {
+    // Keep tab in sync with URL query param if present
     const tabParam = searchParams.get('tab');
     if (tabParam === 'signup') {
       setActiveTab('signup');
@@ -46,15 +47,20 @@ function AuthForm() {
         });
 
         if (error) {
-          // Extract message string safely
-          setErrorMsg(error.message);
+          // Catch string "{}" or empty errors and convert to readable text
+          const msg =
+            error.message && error.message !== '{}'
+              ? error.message
+              : 'Invalid login credentials or network issue.';
+          setErrorMsg(msg);
           return;
         }
 
+        // Redirect on successful login
         router.push('/dashboard');
         router.refresh();
       } else {
-        // Sign up logic
+        // Sign up
         const { data: authData, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
@@ -68,12 +74,17 @@ function AuthForm() {
         });
 
         if (signUpError) {
-          // Extract message string safely
-          setErrorMsg(signUpError.message);
+          // Filter out raw "{}" responses from Supabase
+          const msg =
+            signUpError.message && signUpError.message !== '{}'
+              ? signUpError.message
+              : 'Registration failed. Check if your account already exists or verify connection.';
+          setErrorMsg(msg);
           return;
         }
 
         if (authData.user) {
+          // Sync profile to database table
           const { error: profileError } = await supabase.from('profiles').upsert({
             id: authData.user.id,
             full_name: fullName,
@@ -91,8 +102,11 @@ function AuthForm() {
         }, 1200);
       }
     } catch (err: any) {
-      // Fallback string extraction for unexpected errors
-      setErrorMsg(err?.message || 'An unexpected authentication error occurred.');
+      const fallbackMsg =
+        err?.message && err.message !== '{}'
+          ? err.message
+          : 'An unexpected authentication error occurred.';
+      setErrorMsg(fallbackMsg);
     } finally {
       setLoading(false);
     }
@@ -146,12 +160,12 @@ function AuthForm() {
           </p>
         </div>
 
-        {/* SAFE ERROR BANNER RENDERING */}
+        {/* CLEAN & SAFE ERROR DISPLAY */}
         {errorMsg && (
           <div className="mb-4 p-3 bg-rose-50 border border-rose-100 rounded-xl text-xs font-medium text-rose-700">
-            {typeof errorMsg === 'string'
+            {typeof errorMsg === 'string' && errorMsg !== '{}'
               ? errorMsg
-              : errorMsg?.message || 'Authentication error. Please check your credentials.'}
+              : 'Unable to complete registration. Please check your details and try again.'}
           </div>
         )}
 
@@ -288,4 +302,4 @@ export default function LoginPage() {
       </Suspense>
     </div>
   );
-                   }
+          }
