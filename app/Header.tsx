@@ -9,30 +9,42 @@ export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Fallback safe checks if state context isn't fully loaded yet
+  // Safe fallbacks if context isn't fully initialized
   const isMember = context?.isMember ?? false;
   const memberBalance = context?.memberBalance ?? 0;
   const cart = context?.cart ?? [];
-  const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const cartCount = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
 
-  // Close dropdown on outside click
+  // Close dropdown on outside click or Escape key
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+      }
+    }
+
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, []);
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-slate-100 px-4 py-3 font-sans shadow-sm">
-      <div className="max-w-5xl mx-auto flex items-center justify-between relative h-10">
+      <div className="max-w-6xl mx-auto flex items-center justify-between relative h-10">
         
-        {/* Brand Logo / Home Trigger */}
-        <Link href="/shop" className="flex items-center gap-2 shrink-0 group" title="Go to Home">
-          <span className="text-3xl transition-transform group-hover:scale-105 duration-200">🐦</span>
+        {/* Brand Logo */}
+        <Link href="/" className="flex items-center gap-2 shrink-0 group" title="Go to Home">
+          <span className="text-3xl transition-transform group-hover:scale-105 duration-200">🦅</span>
           <div>
             <span className="block text-sm font-bold tracking-tight text-slate-900 leading-tight group-hover:text-emerald-600 transition-colors">
               Mighty Sparrow
@@ -43,10 +55,10 @@ export default function Header() {
           </div>
         </Link>
 
-        {/* Dynamic Cart, Wallet Status, and Explore Dropdown Menu */}
+        {/* Dynamic Controls */}
         <div className="flex items-center gap-3">
           
-          {/* Dynamic Wallet Balance Display (Visible if member) */}
+          {/* Wallet Balance Display (Active Members Only) */}
           {isMember && (
             <div className="hidden sm:flex flex-col items-end bg-emerald-50/70 border border-emerald-100/50 px-3 py-1 rounded-xl">
               <span className="text-[8px] uppercase tracking-wider text-emerald-600 font-bold leading-tight">
@@ -58,7 +70,7 @@ export default function Header() {
             </div>
           )}
 
-          {/* Cart Trigger Icon with Badge */}
+          {/* Cart Icon with Badge */}
           <Link 
             href="/cart" 
             className="relative p-2.5 bg-slate-50 hover:bg-slate-100 rounded-xl transition text-slate-700"
@@ -75,8 +87,11 @@ export default function Header() {
           {/* Explore Portal Dropdown Container */}
           <div className="relative" ref={menuRef}>
             <button
-              onClick={() => setIsOpen(!isOpen)}
-              className="flex items-center gap-3 border border-slate-200 hover:border-slate-300 rounded-2xl px-4 py-2 bg-white transition text-left focus:outline-none select-none h-10"
+              type="button"
+              onClick={() => setIsOpen((prev) => !prev)}
+              aria-expanded={isOpen}
+              aria-haspopup="true"
+              className="flex items-center gap-3 border border-slate-200 hover:border-slate-300 rounded-2xl px-4 py-2 bg-white transition text-left focus:outline-none focus:ring-2 focus:ring-emerald-500/20 select-none h-10"
             >
               <span className="text-xs font-bold text-slate-800 tracking-wide">
                 Explore Portal
@@ -86,7 +101,7 @@ export default function Header() {
               </span>
             </button>
 
-            {/* Clean Dropdown List using your real file paths */}
+            {/* Dropdown Menu */}
             {isOpen && (
               <div className="absolute right-0 mt-3 w-80 max-h-[85vh] overflow-y-auto bg-white border border-slate-100 rounded-2xl shadow-2xl z-50 divide-y divide-slate-100 font-sans">
                 
@@ -98,9 +113,8 @@ export default function Header() {
                     </span>
                   </div>
 
-                  {/* ADDED: My Profile Link mapping directly to your vendor/profile path */}
                   <Link
-                    href="/vendor/profile"
+                    href="/profile"
                     onClick={() => setIsOpen(false)}
                     className="flex items-start gap-4 px-5 py-3 hover:bg-slate-50 transition"
                   >
@@ -126,7 +140,7 @@ export default function Header() {
                         Member Dashboard
                       </span>
                       <span className="block text-xs text-slate-500 mt-1 leading-snug">
-                        Manage savings & track rewards
+                        Manage savings &amp; track rewards
                       </span>
                     </div>
                   </Link>
@@ -142,7 +156,7 @@ export default function Header() {
                         Co-op Wallet
                       </span>
                       <span className="block text-xs text-slate-500 mt-1 leading-snug">
-                        Fund security account & view transactions
+                        Fund security account &amp; view transactions
                       </span>
                     </div>
                   </Link>
@@ -152,11 +166,10 @@ export default function Header() {
                 <div className="py-2">
                   <div className="px-5 py-2">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                      Commerce & Benefits
+                      Commerce &amp; Benefits
                     </span>
                   </div>
 
-                  {/* Marketplace Store / Home */}
                   <Link
                     href="/shop"
                     onClick={() => setIsOpen(false)}
@@ -168,7 +181,7 @@ export default function Header() {
                         Marketplace Store
                       </span>
                       <span className="block text-xs text-slate-500 mt-1 leading-snug">
-                        Browse general merchandise & deals
+                        Browse general merchandise &amp; deals
                       </span>
                     </div>
                   </Link>
@@ -184,7 +197,7 @@ export default function Header() {
                         My Orders
                       </span>
                       <span className="block text-xs text-slate-500 mt-1 leading-snug">
-                        Track shipments & view invoices
+                        Track shipments &amp; view invoices
                       </span>
                     </div>
                   </Link>
