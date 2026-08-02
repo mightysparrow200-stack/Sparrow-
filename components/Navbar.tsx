@@ -7,14 +7,31 @@ import { useRouter } from 'next/navigation';
 
 export default function Navbar() {
   const [user, setUser] = useState<any>(null);
+  const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    // 1. Check active session on initial load
+    // 1. Check active session & user role on initial load
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user || null);
+      
+      if (session?.user) {
+        setUser(session.user);
+        
+        // Fetch profile role from Supabase
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+
+        setRole(profile?.role || 'member');
+      } else {
+        setUser(null);
+        setRole(null);
+      }
+
       setLoading(false);
     };
 
@@ -22,7 +39,13 @@ export default function Navbar() {
 
     // 2. Listen for auth changes (login/logout)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user || null);
+      if (session?.user) {
+        checkUser();
+      } else {
+        setUser(null);
+        setRole(null);
+        setLoading(false);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -30,6 +53,8 @@ export default function Navbar() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
+    setUser(null);
+    setRole(null);
     router.push('/login');
     router.refresh();
   };
@@ -50,19 +75,44 @@ export default function Navbar() {
             <div className="w-16 h-4 bg-slate-100 animate-pulse rounded" />
           ) : user ? (
             <>
-              {/* Logged In: 1 Sign-In Access to All Sections */}
-              <Link href="/dashboard" className="text-slate-600 hover:text-slate-900">
-                Dashboard
-              </Link>
-              <Link href="/wallet" className="text-slate-600 hover:text-slate-900">
-                Wallet
-              </Link>
-              <Link href="/orders" className="text-slate-600 hover:text-slate-900">
-                Orders
-              </Link>
-              <Link href="/profile" className="text-slate-600 hover:text-slate-900">
-                Profile
-              </Link>
+              {/* MEMBER LINKS */}
+              {role !== 'vendor' && (
+                <>
+                  <Link href="/dashboard" className="text-slate-600 hover:text-slate-900 transition">
+                    Dashboard
+                  </Link>
+                  <Link href="/shop" className="text-slate-600 hover:text-slate-900 transition">
+                    Store
+                  </Link>
+                  <Link href="/wallet" className="text-slate-600 hover:text-slate-900 transition">
+                    Wallet
+                  </Link>
+                  <Link href="/orders" className="text-slate-600 hover:text-slate-900 transition">
+                    Orders
+                  </Link>
+                  <Link href="/profile" className="text-slate-600 hover:text-slate-900 transition">
+                    Profile
+                  </Link>
+                </>
+              )}
+
+              {/* VENDOR LINKS */}
+              {role === 'vendor' && (
+                <>
+                  <Link href="/vendor" className="text-slate-600 hover:text-slate-900 transition">
+                    Vendor Portal
+                  </Link>
+                  <Link href="/shop" className="text-slate-600 hover:text-slate-900 transition">
+                    Store
+                  </Link>
+                  <Link href="/vendor/products" className="text-slate-600 hover:text-slate-900 transition">
+                    My Products
+                  </Link>
+                  <Link href="/vendor/orders" className="text-slate-600 hover:text-slate-900 transition">
+                    Store Orders
+                  </Link>
+                </>
+              )}
               
               <button
                 onClick={handleSignOut}
@@ -73,8 +123,11 @@ export default function Navbar() {
             </>
           ) : (
             <>
-              {/* Logged Out */}
-              <Link href="/login" className="text-slate-600 hover:text-slate-900">
+              {/* LOGGED OUT / GUEST LINKS */}
+              <Link href="/shop" className="text-slate-600 hover:text-slate-900 transition">
+                Store
+              </Link>
+              <Link href="/login" className="text-slate-600 hover:text-slate-900 transition">
                 Sign In
               </Link>
               <Link
