@@ -7,23 +7,38 @@ export default function OnboardDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close the dropdown when clicking outside
+  // Close the dropdown when clicking outside or pressing Escape
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+      }
+    }
+
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, []);
 
   return (
     <div className="relative inline-block text-left font-sans" ref={dropdownRef}>
       {/* Trigger Button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 transition shadow-sm"
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        aria-expanded={isOpen}
+        aria-haspopup="true"
+        className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 transition shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
       >
         <span>Explore Portal</span>
         <svg
@@ -36,7 +51,7 @@ export default function OnboardDropdown() {
         </svg>
       </button>
 
-      {/* Dropdown Menu (Floats cleanly over content) */}
+      {/* Dropdown Menu */}
       {isOpen && (
         <div className="absolute right-0 top-full mt-2 w-72 origin-top-right bg-white border border-slate-100 rounded-2xl shadow-xl ring-1 ring-black/5 z-50 divide-y divide-slate-100 overflow-hidden">
           
@@ -55,7 +70,7 @@ export default function OnboardDropdown() {
                 <span className="block text-xs font-bold text-slate-900 group-hover:text-slate-950">
                   Member Dashboard
                 </span>
-                <span className="block text-[10px] text-slate-400">Manage savings & track rewards</span>
+                <span className="block text-[10px] text-slate-400">Manage savings &amp; track rewards</span>
               </div>
             </Link>
             <Link
@@ -68,7 +83,7 @@ export default function OnboardDropdown() {
                 <span className="block text-xs font-bold text-slate-900 group-hover:text-slate-950">
                   Co-op Wallet
                 </span>
-                <span className="block text-[10px] text-slate-400">Fund security account & view transactions</span>
+                <span className="block text-[10px] text-slate-400">Fund security account &amp; view transactions</span>
               </div>
             </Link>
           </div>
@@ -76,7 +91,7 @@ export default function OnboardDropdown() {
           {/* Section 2: Commerce & Shop */}
           <div className="p-2 space-y-1">
             <span className="block px-3 pt-1 pb-1 text-[9px] font-bold uppercase tracking-wider text-slate-400">
-              Commerce & Benefits
+              Commerce &amp; Benefits
             </span>
             <Link
               href="/shop"
@@ -88,7 +103,7 @@ export default function OnboardDropdown() {
                 <span className="block text-xs font-bold text-slate-900 group-hover:text-slate-950">
                   Marketplace Store
                 </span>
-                <span className="block text-[10px] text-slate-400">Browse general merchandise & deals</span>
+                <span className="block text-[10px] text-slate-400">Browse general merchandise &amp; deals</span>
               </div>
             </Link>
             <Link
@@ -101,7 +116,7 @@ export default function OnboardDropdown() {
                 <span className="block text-xs font-bold text-slate-900 group-hover:text-slate-950">
                   My Orders
                 </span>
-                <span className="block text-[10px] text-slate-400">Track shipments & view invoices</span>
+                <span className="block text-[10px] text-slate-400">Track shipments &amp; view invoices</span>
               </div>
             </Link>
           </div>
