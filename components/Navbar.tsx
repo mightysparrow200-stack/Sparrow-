@@ -17,12 +17,12 @@ export default function Navbar() {
 
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Fallbacks for CoOpState Context
+  // Cart & Wallet context values
   const memberBalance = context?.memberBalance ?? 0;
   const cart = context?.cart ?? [];
   const cartCount = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
 
-  // 1. Sync Supabase Auth Session
+  // 1. Unified Session Sync
   useEffect(() => {
     let isMounted = true;
 
@@ -64,7 +64,7 @@ export default function Navbar() {
     };
   }, []);
 
-  // 2. Click Outside & Keyboard Listeners
+  // 2. Click Outside & Esc Key Listener
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -110,10 +110,10 @@ export default function Navbar() {
           </div>
         </Link>
 
-        {/* CONTROLS */}
+        {/* RIGHT CONTROLS */}
         <div className="flex items-center gap-3">
           
-          {/* WALLET BALANCE (Logged-In Users) */}
+          {/* WALLET DISPLAY (LOGGED IN) */}
           {user && (
             <div className="hidden sm:flex flex-col items-end bg-emerald-50/70 border border-emerald-100/50 px-3 py-1 rounded-xl">
               <span className="text-[8px] uppercase tracking-wider text-emerald-600 font-bold leading-tight">
@@ -125,7 +125,7 @@ export default function Navbar() {
             </div>
           )}
 
-          {/* CART TRIGGER */}
+          {/* CART BUTTON */}
           <Link 
             href="/cart" 
             className="relative p-2 bg-slate-50 hover:bg-slate-100 rounded-xl transition text-slate-700"
@@ -139,7 +139,7 @@ export default function Navbar() {
             )}
           </Link>
 
-          {/* AUTH STATE / PORTAL MENU */}
+          {/* AUTH & DROPDOWN PORTAL */}
           {loading ? (
             <div className="w-20 h-9 bg-slate-100 animate-pulse rounded-xl" />
           ) : !user ? (
@@ -165,7 +165,7 @@ export default function Navbar() {
               </Link>
             </div>
           ) : (
-            /* LOGGED-IN EXPLORE DROPDOWN */
+            /* LOGGED-IN EXPLORE PORTAL DROPDOWN */
             <div className="relative" ref={menuRef}>
               <button
                 type="button"
@@ -181,7 +181,7 @@ export default function Navbar() {
               {isOpen && (
                 <div className="absolute right-0 mt-3 w-72 max-h-[85vh] overflow-y-auto bg-white border border-slate-100 rounded-2xl shadow-2xl z-50 divide-y divide-slate-100 font-sans">
                   
-                  {/* PERSONAL PORTAL */}
+                  {/* ROLE SPECIFIC PORTAL LINKS */}
                   <div className="py-2">
                     <span className="block px-4 py-1 text-[9px] font-bold text-slate-400 uppercase tracking-widest">
                       Personal Portal ({role || 'Member'})
@@ -231,7 +231,7 @@ export default function Navbar() {
                     )}
                   </div>
 
-                  {/* COMMERCE LINKS */}
+                  {/* MARKETPLACE LINKS */}
                   <div className="py-2">
                     <span className="block px-4 py-1 text-[9px] font-bold text-slate-400 uppercase tracking-widest">
                       Marketplace
