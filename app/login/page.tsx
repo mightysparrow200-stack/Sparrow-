@@ -21,7 +21,7 @@ export default function LoginPage() {
 
     try {
       if (isSignUp) {
-        // 1. Sign up user via Supabase Auth
+        // 1. Sign up user via Supabase Auth with metadata
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -32,23 +32,37 @@ export default function LoginPage() {
 
         if (error) throw error;
 
-        // 2. Redirect based on chosen role to onboarding
+        // Redirect based on chosen role to onboarding
         if (role === 'vendor') {
           router.push('/onboard/vendor');
         } else {
           router.push('/onboard/member');
         }
       } else {
-        // 3. Handle Sign In
-        const { error } = await supabase.auth.signInWithPassword({
+        // 2. Handle Sign In
+        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
 
-        if (error) throw error;
+        if (authError) throw authError;
 
-        // Redirect to dashboard upon successful login
-        router.push('/dashboard');
+        // 3. Fetch user profile to route to correct portal (Vendor vs Member)
+        if (authData?.user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', authData.user.id)
+            .single();
+
+          router.refresh(); // Sync session cookies across all server components
+
+          if (profile?.role === 'vendor') {
+            router.push('/vendor');
+          } else {
+            router.push('/dashboard');
+          }
+        }
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'An error occurred during authentication.');
@@ -185,4 +199,4 @@ export default function LoginPage() {
       </div>
     </main>
   );
-  }
+}
