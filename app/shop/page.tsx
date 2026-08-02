@@ -1,9 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-// If CoOpState is in your project root:
-import { useCoOp } from '@/CoOpState'; 
-// Note: If CoOpState is in lib/ or app/, adjust to '@/lib/CoOpState' or '@/app/CoOpState'
+import { useCoOp } from '../CoOpState';
 
 const CORE_PRODUCTS = [
   { id: 1, name: 'Co-Op Tech Smart Backpack', category: 'Gear', price: 35000.00, desc: 'Water-resistant, anti-theft design with a built-in USB charging port.', img: '🎒' },
