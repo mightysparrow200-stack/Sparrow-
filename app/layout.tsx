@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { Inter, Playfair_Display } from 'next/font/google';
-import Header from './Header';
+import Navbar from '@/components/Navbar';
 import { CoOpProvider } from './CoOpState';
 import './globals.css';
 
@@ -29,8 +29,8 @@ export default function RootLayout({
       <body className="bg-slate-50 text-slate-900 font-sans min-h-screen flex flex-col justify-between selection:bg-coopGold/30">
         
         <CoOpProvider>
-          {/* Imported Dynamic Header Component */}
-          <Header />
+          {/* SINGLE DYNAMIC NAVBAR */}
+          <Navbar />
 
           {/* PAGE CONTENT CONTAINER */}
           <main className="flex-grow">
