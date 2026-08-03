@@ -14,7 +14,7 @@ export async function middleware(request: NextRequest) {
         getAll() {
           return request.cookies.getAll()
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: { name: string; value: string; options?: any }[]) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           )
@@ -29,27 +29,26 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // IMPORTANT: Do NOT call getUser() without refreshing cookies first.
-  // Using getSession() or getUser() here refreshes expired session tokens automatically.
+  // Refresh active session and get user
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
   const url = request.nextUrl.clone()
 
-  // Define all private paths
+  // Define private paths
   const protectedRoutes = ['/dashboard', '/wallet', '/orders', '/profile', '/vendor', '/onboard']
   const isProtectedRoute = protectedRoutes.some((path) =>
     url.pathname.startsWith(path)
   )
 
-  // 1. If guest attempts to access a protected route -> redirect to /login
+  // 1. Redirect guest to /login if attempting to access private route
   if (!user && isProtectedRoute) {
     url.pathname = '/login'
     return NextResponse.redirect(url)
   }
 
-  // 2. If already logged in and navigating to /login -> redirect straight to /dashboard
+  // 2. Redirect logged-in user away from /login to /dashboard
   if (user && url.pathname.startsWith('/login')) {
     url.pathname = '/dashboard'
     return NextResponse.redirect(url)
@@ -60,13 +59,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - images/icons ending in common extensions
-     */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
