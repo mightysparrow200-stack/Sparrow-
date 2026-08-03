@@ -1,8 +1,10 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request })
+  let supabaseResponse = NextResponse.next({
+    request,
+  })
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -12,9 +14,13 @@ export async function middleware(request: NextRequest) {
         getAll() {
           return request.cookies.getAll()
         },
-        setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({ request })
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          )
+          supabaseResponse = NextResponse.next({
+            request,
+          })
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           )
@@ -23,20 +29,29 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // 1. Check active authenticated session
-  const { data: { user } } = await supabase.auth.getUser()
+  // IMPORTANT: Do NOT call getUser() without refreshing cookies first.
+  // Using getSession() or getUser() here refreshes expired session tokens automatically.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
   const url = request.nextUrl.clone()
 
-  // 2. Define all private paths
+  // Define all private paths
   const protectedRoutes = ['/dashboard', '/wallet', '/orders', '/profile', '/vendor', '/onboard']
-  
   const isProtectedRoute = protectedRoutes.some((path) =>
     url.pathname.startsWith(path)
   )
 
-  // 3. Redirect to /login if guest attempts to access any private route
+  // 1. If guest attempts to access a protected route -> redirect to /login
   if (!user && isProtectedRoute) {
     url.pathname = '/login'
+    return NextResponse.redirect(url)
+  }
+
+  // 2. If already logged in and navigating to /login -> redirect straight to /dashboard
+  if (user && url.pathname.startsWith('/login')) {
+    url.pathname = '/dashboard'
     return NextResponse.redirect(url)
   }
 
@@ -45,11 +60,13 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/dashboard/:path*',
-    '/wallet/:path*',
-    '/orders/:path*',
-    '/profile/:path*',
-    '/vendor/:path*',
-    '/onboard/:path*',
+    /*
+     * Match all request paths except for:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - images/icons ending in common extensions
+     */
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
