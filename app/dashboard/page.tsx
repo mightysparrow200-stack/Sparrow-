@@ -1,181 +1,153 @@
-import { createClient } from '@/lib/supabase-server';
-import { redirect } from 'next/navigation';
+'use client';
 
-export default async function DashboardPage() {
-  const supabase = await createClient();
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import Link from 'next/link';
 
-  // 1. Get current user session
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+interface UserProfile {
+  id: string;
+  full_name: string;
+  email: string;
+  role: string;
+  shares: number;
+  equity_stake: number;
+  total_dividends: number;
+  savings_balance: number;
+  department?: string;
+  graduation_year?: string;
+}
 
-  if (authError || !user) {
-    redirect('/login');
+export default function DashboardPage() {
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchDashboardData() {
+      try {
+        setLoading(true);
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) {
+          window.location.href = '/login';
+          return;
+        }
+
+        // Fetch real user profile data
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        if (error) throw error;
+
+        setProfile({
+          id: user.id,
+          full_name: data?.full_name || user.email?.split('@')[0] || 'Member',
+          email: user.email || '',
+          role: data?.role || 'member',
+          shares: data?.shares || 0,
+          equity_stake: data?.equity_stake || 0,
+          total_dividends: data?.total_dividends || 0,
+          savings_balance: data?.savings_balance || 0,
+          department: data?.department,
+          graduation_year: data?.graduation_year,
+        });
+      } catch (err) {
+        console.error('Error fetching dashboard profile:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchDashboardData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center font-sans">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-xs font-bold text-slate-500">Loading Portal Dashboard...</p>
+        </div>
+      </div>
+    );
   }
 
-  // 2. Fetch Profile, Wallet, and Recent Transactions in parallel
-  const [{ data: profile }, { data: wallet }, { data: transactions }] = await Promise.all([
-    supabase.from('profiles').select('*').eq('id', user.id).single(),
-    supabase.from('wallets').select('*').eq('user_id', user.id).single(),
-    supabase
-      .from('wallet_transactions')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(5),
-  ]);
-
-  const memberBalance = wallet?.balance ? Number(wallet.balance) : 0;
-  const isMember = profile?.role === 'member' || profile?.role === 'vendor';
-
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8 font-sans">
-      {/* PORTAL HEADER */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+    <div className="max-w-4xl mx-auto px-4 py-8 font-sans space-y-6">
+      {/* HEADER */}
+      <div>
+        <h1 className="text-2xl font-black text-slate-900">Alumni & Community Portal</h1>
+        <p className="text-xs text-slate-500 mt-1">
+          Access your personalized cooperative equity, track pool shares, and manage savings.
+        </p>
+      </div>
+
+      {/* MEMBER CARD */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-serif text-slate-950 font-bold">
-            Alumni &amp; Community Portal
-          </h1>
-          <p className="text-xs md:text-sm text-slate-500 mt-1">
-            Access your personalized cooperative equity, track pool shares, and manage savings.
-          </p>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+            Active Member ({profile?.role})
+          </span>
+          <h2 className="text-xl font-black text-slate-900 mt-2">{profile?.full_name}</h2>
+          <p className="text-xs text-slate-500">{profile?.email}</p>
         </div>
 
-        {/* PROFILE STATUS DISPLAY */}
-        <div className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm">
-          <div className="w-8 h-8 rounded-full bg-amber-400/20 flex items-center justify-center text-sm">
-            🦅
-          </div>
-          <div className="text-left pr-2">
-            <span className="block text-xs font-bold text-slate-900 leading-none">
-              {profile?.full_name || user.email}
-            </span>
-            <span className="text-[10px] text-emerald-600 font-semibold block mt-1">
-              Status: {isMember ? 'Active Member' : 'Guest Account'} ({profile?.role || 'Member'})
-            </span>
-          </div>
+        <div className="text-right">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+            Cooperative Savings
+          </span>
+          <span className="text-2xl font-black text-slate-900">
+            ₦{(profile?.savings_balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+          </span>
         </div>
       </div>
 
-      {/* BALANCES GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        {/* CARD 1: SAVINGS WALLET */}
-        <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm">
-          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
-            Cooperative Savings Balance
+      {/* SHARES & DIVIDENDS STATS */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* SHARES CARD */}
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+            Pool Shares Owned
           </span>
-          <div className="text-2xl font-extrabold text-emerald-600 mt-2">
-            ₦{memberBalance.toLocaleString('en-NG', { minimumFractionDigits: 2 })}
+          <div className="text-3xl font-black text-slate-900">
+            {(profile?.shares || 0).toLocaleString()} <span className="text-sm font-bold text-slate-400">Shares</span>
           </div>
-          <p className="text-xs text-slate-400 mt-3 leading-relaxed">
-            Available for instant use inside the Cooperative Marketplace.
+          <p className="text-xs text-slate-500 mt-2">
+            Representing an active {profile?.equity_stake || 0}% stake in community physical assets.
           </p>
         </div>
 
-        {/* CARD 2: EQUITY SHARES */}
-        <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm">
-          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
-            Your Equity Pool Ownership
-          </span>
-          <div className="text-2xl font-extrabold text-slate-900 mt-2">
-            1,250 <span className="text-xs font-medium text-slate-400">Shares</span>
-          </div>
-          <p className="text-xs text-slate-400 mt-3 leading-relaxed">
-            Representing an active 0.12% stake in community physical assets.
-          </p>
-        </div>
-
-        {/* CARD 3: DIVIDENDS */}
-        <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm">
-          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
+        {/* DIVIDENDS CARD */}
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
             Total Dividends Received
           </span>
-          <div className="text-2xl font-extrabold text-amber-500 mt-2">
-            ₦75,400.00
+          <div className="text-3xl font-black text-amber-600">
+            ₦{(profile?.total_dividends || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </div>
-          <p className="text-xs text-slate-400 mt-3 leading-relaxed">
+          <p className="text-xs text-slate-500 mt-2">
             Calculated quarterly based on total marketplace external trade yields.
           </p>
         </div>
       </div>
 
-      {/* PORTAL DETAILS & LEDGER */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm space-y-3">
-          <h3 className="font-serif text-base text-slate-950 font-bold">
-            Account Identifiers
-          </h3>
-          <p className="text-xs text-slate-400">
-            Your verified cooperative registration details.
-          </p>
-          
-          <div className="pt-2 space-y-2 border-t border-slate-100 text-xs">
-            <div className="flex justify-between text-slate-600">
-              <span>Account Email:</span>
-              <span className="font-semibold text-slate-900 truncate max-w-[150px]">{user.email}</span>
-            </div>
-            <div className="flex justify-between text-slate-600">
-              <span>Member ID:</span>
-              <span className="font-mono font-semibold text-slate-900">
-                {user.id.slice(0, 8)}...
-              </span>
-            </div>
+      {/* ACCOUNT DETAILS */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+        <h3 className="text-sm font-bold text-slate-900 mb-4 pb-2 border-b border-slate-100">
+          Account Identifiers
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+          <div>
+            <span className="text-slate-400 block">Account Email</span>
+            <span className="font-bold text-slate-800">{profile?.email}</span>
           </div>
-        </div>
-
-        <div className="md:col-span-2 bg-white border border-slate-200 p-6 rounded-2xl shadow-sm">
-          <h3 className="font-serif text-base text-slate-950 font-bold mb-1">
-            Personal Ledger
-          </h3>
-          <p className="text-xs text-slate-400 mb-4">
-            Real-time status tracking of all wallet activity.
-          </p>
-
-          <div className="space-y-3">
-            {transactions && transactions.length > 0 ? (
-              transactions.map((tx) => (
-                <div
-                  key={tx.id}
-                  className="flex justify-between items-center p-3 bg-slate-50 border border-slate-100 rounded-xl text-xs"
-                >
-                  <div>
-                    <span className="font-bold text-slate-900 block">
-                      {tx.description || 'Wallet Transaction'}
-                    </span>
-                    <span className="text-[10px] text-slate-400">
-                      {new Date(tx.created_at).toLocaleDateString('en-NG', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric',
-                      })}
-                    </span>
-                  </div>
-                  <span
-                    className={`font-bold ${
-                      tx.amount > 0 ? 'text-emerald-600' : 'text-rose-600'
-                    }`}
-                  >
-                    {tx.amount > 0 ? '+' : ''}₦
-                    {Math.abs(Number(tx.amount)).toLocaleString('en-NG', {
-                      minimumFractionDigits: 2,
-                    })}
-                  </span>
-                </div>
-              ))
-            ) : (
-              <div className="flex justify-between items-center p-3 bg-slate-50 border border-slate-100 rounded-xl text-xs">
-                <div>
-                  <span className="font-bold text-slate-900 block">
-                    Initial Welcome Capital Grant
-                  </span>
-                  <span className="text-[10px] text-slate-400">
-                    Co-Op Onboarding Credit • Verified
-                  </span>
-                </div>
-                <span className="font-bold text-emerald-600">+₦1,000.00</span>
-              </div>
-            )}
+          <div>
+            <span className="text-slate-400 block">Department / Year</span>
+            <span className="font-bold text-slate-800">
+              {profile?.department || 'N/A'} {profile?.graduation_year ? `('${profile?.graduation_year.slice(-2)})` : ''}
+            </span>
           </div>
         </div>
       </div>
