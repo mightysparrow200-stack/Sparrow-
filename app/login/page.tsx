@@ -9,7 +9,6 @@ function AuthForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Tab state (signin or signup)
   const initialTab = searchParams.get('tab') === 'signup' ? 'signup' : 'signin';
   const [activeTab, setActiveTab] = useState<'signin' | 'signup'>(initialTab);
 
@@ -24,7 +23,6 @@ function AuthForm() {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    // Keep tab in sync with URL query param if present
     const tabParam = searchParams.get('tab');
     if (tabParam === 'signup') {
       setActiveTab('signup');
@@ -41,21 +39,24 @@ function AuthForm() {
 
     try {
       if (activeTab === 'signin') {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
 
         if (error) {
           console.error('Sign In Error:', error);
-          setErrorMsg(error.message || 'Invalid login credentials or network issue.');
+          setErrorMsg(error.message || 'Invalid login credentials.');
           setLoading(false);
           return;
         }
 
-        window.location.href = '/dashboard';
+        if (data.session) {
+          setSuccessMsg('Signed in successfully! Redirecting...');
+          // Force a hard reload so cookies are sent with the dashboard request
+          window.location.href = role === 'vendor' ? '/vendor' : '/dashboard';
+        }
       } else {
-        // Sign up logic
         const { data: authData, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
@@ -69,14 +70,13 @@ function AuthForm() {
         });
 
         if (signUpError) {
-          console.error('Detailed Supabase SignUp Error:', signUpError);
-          setErrorMsg(signUpError.message || 'Registration failed. Check database logs.');
+          console.error('SignUp Error:', signUpError);
+          setErrorMsg(signUpError.message || 'Registration failed.');
           setLoading(false);
           return;
         }
 
         if (authData.user) {
-          // Sync profile to database table
           const { error: profileError } = await supabase.from('profiles').upsert({
             id: authData.user.id,
             full_name: fullName,
@@ -85,18 +85,18 @@ function AuthForm() {
           });
 
           if (profileError) {
-            console.error('Profile table sync error:', profileError);
+            console.error('Profile sync notice:', profileError.message);
           }
         }
 
         if (authData.session) {
           setSuccessMsg('Account created successfully! Redirecting...');
-          const targetUrl = role === 'vendor' ? '/vendor' : '/dashboard';
           setTimeout(() => {
-            window.location.href = targetUrl;
-          }, 1000);
+            window.location.href = role === 'vendor' ? '/vendor' : '/dashboard';
+          }, 800);
         } else {
-          setSuccessMsg('Registration submitted! If required, please verify your email.');
+          setSuccessMsg('Account registered! Please sign in below.');
+          setActiveTab('signin');
           setLoading(false);
         }
       }
@@ -109,7 +109,6 @@ function AuthForm() {
 
   return (
     <div className="w-full max-w-md bg-white border border-slate-200 rounded-3xl shadow-xl overflow-hidden font-sans">
-      
       {/* TABS */}
       <div className="flex border-b border-slate-100 bg-slate-50/50 p-1.5">
         <button
@@ -157,14 +156,12 @@ function AuthForm() {
           </p>
         </div>
 
-        {/* ERROR DISPLAY */}
         {errorMsg && (
           <div className="mb-4 p-3 bg-rose-50 border border-rose-100 rounded-xl text-xs font-medium text-rose-700">
             {errorMsg}
           </div>
         )}
 
-        {/* SUCCESS BANNER */}
         {successMsg && (
           <div className="mb-4 p-3 bg-emerald-50 border border-emerald-100 rounded-xl text-xs font-medium text-emerald-700">
             {successMsg}
