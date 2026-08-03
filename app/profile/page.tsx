@@ -7,12 +7,19 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
   const [updatingPassword, setUpdatingPassword] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
-  // Profile fields
+  // Auth info
   const [email, setEmail] = useState('');
+  const [role, setRole] = useState('member');
+
+  // Profile Form Fields
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
-  const [role, setRole] = useState('member');
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [department, setDepartment] = useState('');
+  const [graduationYear, setGraduationYear] = useState('');
+  const [address, setAddress] = useState('');
 
   // Password fields
   const [newPassword, setNewPassword] = useState('');
@@ -34,17 +41,21 @@ export default function ProfilePage() {
 
         setEmail(user.email || '');
 
-        // Fetch additional details from profiles table
-        const { data: profile, error } = await supabase
+        // Fetch details from profiles table
+        const { data: profile } = await supabase
           .from('profiles')
-          .select('full_name, phone, role')
+          .select('full_name, phone, avatar_url, role, department, graduation_year, address')
           .eq('id', user.id)
           .single();
 
         if (profile) {
           setFullName(profile.full_name || '');
           setPhone(profile.phone || '');
+          setAvatarUrl(profile.avatar_url || '');
           setRole(profile.role || 'member');
+          setDepartment(profile.department || '');
+          setGraduationYear(profile.graduation_year || '');
+          setAddress(profile.address || '');
         }
       } catch (err) {
         console.error('Error fetching profile:', err);
@@ -55,6 +66,39 @@ export default function ProfilePage() {
 
     loadProfile();
   }, []);
+
+  // Handle Image Upload to Supabase Storage 'avatars' bucket
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      setUploadingAvatar(true);
+      setProfileMsg(null);
+
+      if (!e.target.files || e.target.files.length === 0) return;
+
+      const file = e.target.files[0];
+      const fileExt = file.name.split('.').pop();
+      const filePath = `avatar_${Date.now()}.${fileExt}`;
+
+      // Upload file
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        // Fallback: If avatars bucket doesn't exist, handle base64 preview or alert
+        throw new Error('Could not upload image. Please ensure an "avatars" storage bucket exists in Supabase.');
+      }
+
+      // Get public URL
+      const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
+      setAvatarUrl(data.publicUrl);
+      setProfileMsg({ type: 'success', text: 'Photo uploaded! Click "Save Changes" to save.' });
+    } catch (err: any) {
+      setProfileMsg({ type: 'error', text: err.message || 'Error uploading photo.' });
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,6 +115,10 @@ export default function ProfilePage() {
           id: user.id,
           full_name: fullName,
           phone: phone,
+          avatar_url: avatarUrl,
+          department: department,
+          graduation_year: graduationYear,
+          address: address,
           updated_at: new Date().toISOString(),
         });
 
@@ -131,32 +179,69 @@ export default function ProfilePage() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 font-sans">
       <div className="mb-8">
-        <h1 className="text-2xl font-black text-slate-900">Profile Settings</h1>
-        <p className="text-xs text-slate-500 mt-1">Manage your account details and security settings.</p>
+        <h1 className="text-2xl font-black text-slate-900">Account & Profile Settings</h1>
+        <p className="text-xs text-slate-500 mt-1">Manage your alumni co-op information, contact details, and security.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* LEFT COLUMN: Summary Card */}
-        <div className="md:col-span-1">
+        
+        {/* LEFT COLUMN: Avatar & Quick Summary */}
+        <div className="md:col-span-1 space-y-4">
           <div className="bg-white border border-slate-200 rounded-2xl p-6 text-center shadow-sm">
-            <div className="w-20 h-20 bg-emerald-100 text-emerald-800 rounded-full flex items-center justify-center text-3xl font-black mx-auto mb-4">
-              {fullName ? fullName.charAt(0).toUpperCase() : email.charAt(0).toUpperCase()}
+            {/* AVATAR DISPLAY */}
+            <div className="relative w-24 h-24 mx-auto mb-4 group">
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt="Profile Avatar"
+                  className="w-24 h-24 rounded-full object-cover border-2 border-emerald-500 shadow-sm"
+                />
+              ) : (
+                <div className="w-24 h-24 bg-emerald-100 text-emerald-800 rounded-full flex items-center justify-center text-3xl font-black border-2 border-emerald-200">
+                  {fullName ? fullName.charAt(0).toUpperCase() : email.charAt(0).toUpperCase()}
+                </div>
+              )}
+
+              {/* PHOTO UPLOAD BUTTON OVERLAY */}
+              <label
+                htmlFor="avatar-upload"
+                className="absolute inset-0 bg-slate-900/50 rounded-full flex items-center justify-center text-white text-xs font-bold opacity-0 group-hover:opacity-100 transition cursor-pointer"
+              >
+                {uploadingAvatar ? 'Uploading...' : 'Change Photo'}
+              </label>
+              <input
+                id="avatar-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarUpload}
+                disabled={uploadingAvatar}
+                className="hidden"
+              />
             </div>
-            <h2 className="text-sm font-bold text-slate-900">{fullName || 'Member'}</h2>
+
+            <h2 className="text-sm font-bold text-slate-900">{fullName || 'Alumni Member'}</h2>
             <p className="text-xs text-slate-500 truncate mt-0.5">{email}</p>
-            <span className="inline-block mt-3 px-3 py-1 bg-emerald-50 text-emerald-700 text-[10px] font-extrabold uppercase tracking-wider rounded-full border border-emerald-200">
-              {role} Account
-            </span>
+
+            <div className="mt-4 flex flex-wrap justify-center gap-1.5">
+              <span className="px-3 py-1 bg-emerald-50 text-emerald-700 text-[10px] font-extrabold uppercase tracking-wider rounded-full border border-emerald-200">
+                {role} Account
+              </span>
+              {graduationYear && (
+                <span className="px-3 py-1 bg-slate-100 text-slate-700 text-[10px] font-extrabold uppercase tracking-wider rounded-full border border-slate-200">
+                  Class of '{graduationYear.slice(-2)}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Forms */}
+        {/* RIGHT COLUMN: Personal Details & Password Forms */}
         <div className="md:col-span-2 space-y-6">
           
-          {/* PERSONAL DETAILS FORM */}
+          {/* PERSONAL & CO-OP DETAILS FORM */}
           <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
             <h3 className="text-sm font-black text-slate-900 mb-4 flex items-center gap-2">
-              <span>👤</span> Personal Information
+              <span>👤</span> Member Profile Details
             </h3>
 
             {profileMsg && (
@@ -182,30 +267,73 @@ export default function ProfilePage() {
                 />
               </div>
 
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. John Doe"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                    Full Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. John Doe"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                    Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    placeholder="+234..."
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                    Department / Faculty
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Computer Science"
+                    value={department}
+                    onChange={(e) => setDepartment(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                    Graduation Year
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 2020"
+                    value={graduationYear}
+                    onChange={(e) => setGraduationYear(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition"
+                  />
+                </div>
               </div>
 
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
-                  Phone Number
+                  Delivery / Contact Address
                 </label>
-                <input
-                  type="tel"
-                  placeholder="+234..."
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition"
+                <textarea
+                  rows={2}
+                  placeholder="Enter your street address for orders and physical communications..."
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition resize-none"
                 />
               </div>
 
@@ -214,7 +342,7 @@ export default function ProfilePage() {
                 disabled={savingProfile}
                 className="py-2.5 px-5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm transition disabled:opacity-50"
               >
-                {savingProfile ? 'Saving...' : 'Save Profile Updates'}
+                {savingProfile ? 'Saving...' : 'Save Changes'}
               </button>
             </form>
           </div>
@@ -236,32 +364,34 @@ export default function ProfilePage() {
             )}
 
             <form onSubmit={handleUpdatePassword} className="space-y-4">
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
-                  New Password
-                </label>
-                <input
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition"
-                />
-              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                    New Password
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="••••••••"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
-                  Confirm New Password
-                </label>
-                <input
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition"
-                />
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                    Confirm New Password
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="••••••••"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition"
+                  />
+                </div>
               </div>
 
               <button
