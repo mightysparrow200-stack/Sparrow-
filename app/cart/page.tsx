@@ -1,123 +1,263 @@
 'use client';
 
-import { useState } from 'react';
-import dynamic from 'next/dynamic';
-import { useCoOp } from '../CoOpState';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import { getCart, removeFromCart, clearCart, CartItem } from '@/lib/cart';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
-function CartPage() {
-  const context = useCoOp();
-  const [checkoutStatus, setCheckoutStatus] = useState<{ success?: boolean; message?: string }>({});
+export default function CartPage() {
+  const router = useRouter();
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'card'>('wallet');
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [errorMsg, setErrorMsg] = useState('');
 
-  if (!context) {
+  useEffect(() => {
+    async function initCart() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          router.push('/login');
+          return;
+        }
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('address, wallet_balance')
+          .eq('id', user.id)
+          .single();
+
+        if (profile) {
+          setDeliveryAddress(profile.address || '');
+          setWalletBalance(profile.wallet_balance || 0);
+        }
+
+        setCart(getCart());
+      } catch (err) {
+        console.error('Cart error:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    initCart();
+  }, [router]);
+
+  const totalAmount = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
+
+  const handlePlaceOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (cart.length === 0) return;
+    setSubmitting(true);
+    setErrorMsg('');
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated.');
+
+      if (paymentMethod === 'wallet' && walletBalance < totalAmount) {
+        throw new Error('Insufficient Co-Op Wallet balance.');
+      }
+
+      const orderCode = `MSC-${Math.floor(1000 + Math.random() * 9000)}`;
+
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          order_code: orderCode,
+          user_id: user.id,
+          total_amount: totalAmount,
+          status: 'In Transit',
+          delivery_address: deliveryAddress,
+        })
+        .select()
+        .single();
+
+      if (orderError) throw orderError;
+
+      const orderItemsPayload = cart.map((item) => ({
+        order_id: order.id,
+        product_id: item.id,
+        product_title: item.title,
+        quantity: item.quantity,
+        unit_price: item.price,
+        total_price: item.price * item.quantity,
+      }));
+
+      const { error: itemsError } = await supabase.from('order_items').insert(orderItemsPayload);
+      if (itemsError) throw itemsError;
+
+      if (paymentMethod === 'wallet') {
+        await supabase
+          .from('profiles')
+          .update({ wallet_balance: walletBalance - totalAmount })
+          .eq('id', user.id);
+      }
+
+      clearCart();
+      router.push('/orders');
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to place order.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
-        <div className="w-8 h-8 border-4 border-coopGreen border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-xs text-gray-500 font-medium">Loading your basket...</p>
+      <div className="min-h-[70vh] flex items-center justify-center font-sans">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-xs font-bold text-slate-500">Preparing Cart...</p>
+        </div>
       </div>
     );
   }
 
-  const { isMember, memberBalance, cart, removeFromCart, checkout } = context;
-  const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-
-  // FIXED: Converted to async/await to correctly handle the Promise from Supabase
-  const handleCheckout = async () => {
-    const result = await checkout();
-    
-    setCheckoutStatus({
-      success: result.success,
-      message: result.success ? 'Order placed successfully!' : result.error
-    });
-    
-    setTimeout(() => setCheckoutStatus({}), 5000);
-  };
-
   return (
-    <div className="max-w-3xl mx-auto px-4 py-12 animate-fade-in">
-      <h1 className="text-2xl md:text-3xl font-serif text-slate-950 mb-2">Shopping Basket</h1>
-      <p className="text-xs text-gray-400 mb-8">Review items added from the cooperative marketplace before completing payment.</p>
+    <div className="max-w-4xl mx-auto px-4 py-8 font-sans">
+      <div className="mb-8">
+        <Link href="/shop" className="text-xs text-emerald-600 font-bold hover:underline mb-2 inline-block">
+          ← Back to Shop
+        </Link>
+        <h1 className="text-2xl font-black text-slate-900">Your Cart</h1>
+      </div>
 
-      {cart.length > 0 ? (
-        <div className="space-y-6">
-          {/* CART LIST */}
-          <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm divide-y divide-gray-100">
-            {cart.map((item) => (
-              <div key={item.id} className="flex items-center justify-between py-4 first:pt-0 last:pb-0">
-                <div>
-                  {/* FIXED: Changed item.name to item.title to match the CoOpState.tsx interface */}
-                  <h3 className="text-sm font-semibold text-slate-950">{item.title}</h3>
-                  <p className="text-xs text-gray-400 mt-1">
-                    Qty: <span className="font-bold text-slate-700">{item.quantity}</span> × ₦{item.price.toLocaleString('en-NG', { minimumFractionDigits: 2 })}
-                  </p>
-                </div>
-                <div className="flex items-center gap-4">
-                  <span className="text-sm font-extrabold text-slate-950">₦{(item.price * item.quantity).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</span>
-                  <button
-                    onClick={() => removeFromCart(item.id)}
-                    className="text-xs font-semibold text-red-500 hover:text-red-600 transition"
-                  >
-                    Remove
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* CHECKOUT SECTION */}
-          <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-4">
-            <div className="flex justify-between items-center text-xs text-gray-500">
-              <span>Payment Type</span>
-              <span className="font-semibold text-slate-900">
-                {isMember ? 'Cooperative Savings Wallet' : 'Bank Transfer / Card'}
-              </span>
-            </div>
-
-            {isMember && (
-              <div className="flex justify-between items-center text-xs text-gray-500">
-                <span>Your Available Wallet</span>
-                <span className="font-bold text-emerald-600">₦{memberBalance.toLocaleString('en-NG', { minimumFractionDigits: 2 })}</span>
-              </div>
-            )}
-
-            <div className="pt-3 border-t border-gray-100 flex justify-between items-center">
-              <span className="text-sm font-semibold text-slate-900">Grand Total</span>
-              <span className="text-lg font-black text-slate-950">₦{cartTotal.toLocaleString('en-NG', { minimumFractionDigits: 2 })}</span>
-            </div>
-
-            <button
-              onClick={handleCheckout}
-              className="w-full bg-amber-400 text-slate-950 text-sm font-bold py-3 rounded-xl hover:bg-yellow-500 active:scale-95 transition mt-2 shadow-sm"
-            >
-              {isMember ? 'Authorize Co-op Wallet Payment' : 'Proceed to Payment Gateway'}
-            </button>
-          </div>
+      {cart.length === 0 ? (
+        <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center shadow-sm">
+          <p className="text-sm font-bold text-slate-700 mb-4">Your cart is currently empty.</p>
+          <Link
+            href="/shop"
+            className="px-5 py-2.5 bg-emerald-600 text-white font-bold text-xs rounded-xl shadow-sm inline-block"
+          >
+            Browse Products
+          </Link>
         </div>
       ) : (
-        <div className="text-center py-16 bg-white border border-gray-200 rounded-2xl shadow-sm">
-          <span className="text-4xl block mb-3">🛒</span>
-          <h2 className="text-sm font-bold text-slate-900">Your basket is empty</h2>
-          <p className="text-xs text-gray-400 mt-1.5 mb-6">Looks like you haven't added anything to your cart yet.</p>
-          <a
-            href="/shop"
-            className="inline-block bg-emerald-600 text-white text-xs font-semibold px-5 py-2.5 rounded-xl hover:bg-emerald-700 transition shadow-sm"
-          >
-            Return to Marketplace
-          </a>
-        </div>
-      )}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="md:col-span-2 space-y-6">
+            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+              <h2 className="text-sm font-black text-slate-900 mb-4">Items</h2>
+              <div className="divide-y divide-slate-100">
+                {cart.map((item) => (
+                  <div key={item.id} className="py-3 flex items-center justify-between">
+                    <div>
+                      <h3 className="text-xs font-bold text-slate-800">{item.title}</h3>
+                      <p className="text-[10px] text-slate-400">
+                        Qty: {item.quantity} × ₦{item.price.toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <span className="text-xs font-black text-slate-900">
+                        ₦{(item.price * item.quantity).toLocaleString()}
+                      </span>
+                      <button
+                        onClick={() => {
+                          removeFromCart(item.id);
+                          setCart(getCart());
+                        }}
+                        className="text-[10px] text-rose-500 font-bold hover:underline"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
 
-      {/* CHECKOUT RESPONSE */}
-      {checkoutStatus.message && (
-        <div className={`mt-6 p-4 rounded-xl border text-xs leading-relaxed ${
-          checkoutStatus.success 
-            ? 'bg-green-50 border-green-200 text-green-800' 
-            : 'bg-red-50 border-red-200 text-red-800'
-        }`}>
-          {checkoutStatus.message}
+            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+              <h2 className="text-sm font-black text-slate-900 mb-4">Checkout Details</h2>
+              {errorMsg && (
+                <div className="mb-4 p-3 bg-rose-50 text-rose-700 border border-rose-200 rounded-xl text-xs font-semibold">
+                  {errorMsg}
+                </div>
+              )}
+
+              <form onSubmit={handlePlaceOrder} className="space-y-4">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                    Delivery Address
+                  </label>
+                  <textarea
+                    required
+                    rows={2}
+                    placeholder="Enter full delivery address..."
+                    value={deliveryAddress}
+                    onChange={(e) => setDeliveryAddress(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition resize-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">
+                    Payment Method
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('wallet')}
+                      className={`p-3 rounded-xl border text-left text-xs font-bold transition ${
+                        paymentMethod === 'wallet'
+                          ? 'border-emerald-600 bg-emerald-50 text-emerald-900'
+                          : 'border-slate-200 text-slate-600'
+                      }`}
+                    >
+                      💳 Co-Op Wallet
+                      <span className="block text-[10px] font-normal text-slate-500 mt-1">
+                        Bal: ₦{walletBalance.toLocaleString()}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('card')}
+                      className={`p-3 rounded-xl border text-left text-xs font-bold transition ${
+                        paymentMethod === 'card'
+                          ? 'border-emerald-600 bg-emerald-50 text-emerald-900'
+                          : 'border-slate-200 text-slate-600'
+                      }`}
+                    >
+                      🌐 Card / Transfer
+                      <span className="block text-[10px] font-normal text-slate-500 mt-1">Paystack / Flutterwave</span>
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm transition disabled:opacity-50 mt-4"
+                >
+                  {submitting ? 'Processing Order...' : `Confirm Order (₦${totalAmount.toLocaleString()})`}
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <div className="md:col-span-1">
+            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm sticky top-6">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Order Summary</h3>
+              <div className="flex justify-between items-center text-slate-600 text-xs mb-2">
+                <span>Subtotal</span>
+                <span>₦{totalAmount.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-center text-slate-600 text-xs mb-4">
+                <span>Delivery</span>
+                <span className="text-emerald-600 font-bold">FREE</span>
+              </div>
+              <div className="pt-3 border-t border-slate-100 flex justify-between items-center text-slate-900 font-black">
+                <span>Total</span>
+                <span className="text-base text-emerald-700">₦{totalAmount.toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
   );
 }
-
-export default dynamic(() => Promise.resolve(CartPage), { ssr: false });
