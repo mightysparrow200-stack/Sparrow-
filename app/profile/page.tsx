@@ -41,10 +41,10 @@ export default function ProfilePage() {
 
         setEmail(user.email || '');
 
-        // Fetch details from profiles table
+        // Fetch details from profiles table safely
         const { data: profile } = await supabase
           .from('profiles')
-          .select('full_name, phone, avatar_url, role, department, graduation_year, address')
+          .select('*')
           .eq('id', user.id)
           .single();
 
@@ -67,7 +67,7 @@ export default function ProfilePage() {
     loadProfile();
   }, []);
 
-  // Handle Image Upload to Supabase Storage 'avatars' bucket
+  // Upload image to Supabase Storage 'avatars' bucket
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     try {
       setUploadingAvatar(true);
@@ -79,20 +79,17 @@ export default function ProfilePage() {
       const fileExt = file.name.split('.').pop();
       const filePath = `avatar_${Date.now()}.${fileExt}`;
 
-      // Upload file
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, file);
 
       if (uploadError) {
-        // Fallback: If avatars bucket doesn't exist, handle base64 preview or alert
-        throw new Error('Could not upload image. Please ensure an "avatars" storage bucket exists in Supabase.');
+        throw new Error('Could not upload image. Make sure the "avatars" storage bucket exists in Supabase.');
       }
 
-      // Get public URL
       const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
       setAvatarUrl(data.publicUrl);
-      setProfileMsg({ type: 'success', text: 'Photo uploaded! Click "Save Changes" to save.' });
+      setProfileMsg({ type: 'success', text: 'Photo uploaded! Click "Save Changes" to apply.' });
     } catch (err: any) {
       setProfileMsg({ type: 'error', text: err.message || 'Error uploading photo.' });
     } finally {
@@ -109,6 +106,7 @@ export default function ProfilePage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Cleaned payload: only fields guaranteed to exist in basic profiles schema
       const { error } = await supabase
         .from('profiles')
         .upsert({
@@ -119,7 +117,6 @@ export default function ProfilePage() {
           department: department,
           graduation_year: graduationYear,
           address: address,
-          updated_at: new Date().toISOString(),
         });
 
       if (error) throw error;
@@ -188,24 +185,24 @@ export default function ProfilePage() {
         {/* LEFT COLUMN: Avatar & Quick Summary */}
         <div className="md:col-span-1 space-y-4">
           <div className="bg-white border border-slate-200 rounded-2xl p-6 text-center shadow-sm">
-            {/* AVATAR DISPLAY */}
-            <div className="relative w-24 h-24 mx-auto mb-4 group">
+            {/* AVATAR DISPLAY & UPLOAD */}
+            <div className="relative w-24 h-24 mx-auto mb-4 group cursor-pointer">
               {avatarUrl ? (
                 <img
                   src={avatarUrl}
                   alt="Profile Avatar"
-                  className="w-24 h-24 rounded-full object-cover border-2 border-emerald-500 shadow-sm"
+                  className="w-24 h-24 rounded-full object-cover border-2 border-emerald-500 shadow-sm mx-auto"
                 />
               ) : (
-                <div className="w-24 h-24 bg-emerald-100 text-emerald-800 rounded-full flex items-center justify-center text-3xl font-black border-2 border-emerald-200">
+                <div className="w-24 h-24 bg-emerald-100 text-emerald-800 rounded-full flex items-center justify-center text-3xl font-black border-2 border-emerald-200 mx-auto">
                   {fullName ? fullName.charAt(0).toUpperCase() : email.charAt(0).toUpperCase()}
                 </div>
               )}
 
-              {/* PHOTO UPLOAD BUTTON OVERLAY */}
+              {/* OVERLAY BUTTON */}
               <label
                 htmlFor="avatar-upload"
-                className="absolute inset-0 bg-slate-900/50 rounded-full flex items-center justify-center text-white text-xs font-bold opacity-0 group-hover:opacity-100 transition cursor-pointer"
+                className="absolute inset-0 bg-slate-900/60 rounded-full flex items-center justify-center text-white text-xs font-bold opacity-0 group-hover:opacity-100 transition cursor-pointer"
               >
                 {uploadingAvatar ? 'Uploading...' : 'Change Photo'}
               </label>
@@ -235,7 +232,7 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Personal Details & Password Forms */}
+        {/* RIGHT COLUMN: Profile Details & Password Forms */}
         <div className="md:col-span-2 space-y-6">
           
           {/* PERSONAL & CO-OP DETAILS FORM */}
@@ -330,7 +327,7 @@ export default function ProfilePage() {
                 </label>
                 <textarea
                   rows={2}
-                  placeholder="Enter your street address for orders and physical communications..."
+                  placeholder="Enter street address..."
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition resize-none"
