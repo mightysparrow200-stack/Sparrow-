@@ -89,8 +89,8 @@ export default function Navbar() {
     setUser(null);
     setRole(null);
     setIsOpen(false);
-    router.push('/login');
-    router.refresh();
+    // Hard refresh on sign out to clear cookies and server component cache
+    window.location.href = '/login';
   };
 
   return (
@@ -111,11 +111,11 @@ export default function Navbar() {
         </Link>
 
         {/* RIGHT CONTROLS */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           
           {/* WALLET DISPLAY (LOGGED IN) */}
           {user && (
-            <div className="hidden sm:flex flex-col items-end bg-emerald-50/70 border border-emerald-100/50 px-3 py-1 rounded-xl">
+            <div className="flex flex-col items-end bg-emerald-50/70 border border-emerald-100/50 px-2.5 py-1 rounded-xl">
               <span className="text-[8px] uppercase tracking-wider text-emerald-600 font-bold leading-tight">
                 Co-Op Wallet
               </span>
@@ -144,7 +144,7 @@ export default function Navbar() {
             <div className="w-20 h-9 bg-slate-100 animate-pulse rounded-xl" />
           ) : !user ? (
             /* GUEST LINKS */
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <Link 
                 href="/shop" 
                 className="text-xs font-semibold text-slate-600 hover:text-slate-900 px-2 py-1.5 transition"
@@ -170,9 +170,9 @@ export default function Navbar() {
               <button
                 type="button"
                 onClick={() => setIsOpen((prev) => !prev)}
-                className="flex items-center gap-2 border border-slate-200 hover:border-slate-300 rounded-xl px-3 py-2 bg-white transition focus:outline-none select-none h-9 text-xs font-bold text-slate-800"
+                className="flex items-center gap-1.5 sm:gap-2 border border-slate-200 hover:border-slate-300 rounded-xl px-2.5 sm:px-3 py-2 bg-white transition focus:outline-none select-none h-9 text-xs font-bold text-slate-800"
               >
-                <span>Explore Portal</span>
+                <span>Portal</span>
                 <span className={`text-slate-400 text-[10px] transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>
                   ▼
                 </span>
