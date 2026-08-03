@@ -47,16 +47,12 @@ function AuthForm() {
         });
 
         if (error) {
-          const msg =
-            error.message && error.message !== '{}'
-              ? error.message
-              : 'Invalid login credentials or network issue.';
-          setErrorMsg(msg);
+          console.error('Sign In Error:', error);
+          setErrorMsg(error.message || 'Invalid login credentials or network issue.');
           setLoading(false);
           return;
         }
 
-        // Hard redirect on login to sync server session cookies
         window.location.href = '/dashboard';
       } else {
         // Sign up logic
@@ -73,11 +69,8 @@ function AuthForm() {
         });
 
         if (signUpError) {
-          const msg =
-            signUpError.message && signUpError.message !== '{}'
-              ? signUpError.message
-              : 'Registration failed. Check if your account already exists or verify connection.';
-          setErrorMsg(msg);
+          console.error('Detailed Supabase SignUp Error:', signUpError);
+          setErrorMsg(signUpError.message || 'Registration failed. Check database logs.');
           setLoading(false);
           return;
         }
@@ -91,23 +84,25 @@ function AuthForm() {
             role: role,
           });
 
-          if (profileError) console.error('Profile sync notice:', profileError.message);
+          if (profileError) {
+            console.error('Profile table sync error:', profileError);
+          }
         }
 
-        setSuccessMsg('Account created successfully! Redirecting...');
-
-        // Force browser redirect immediately to destination route
-        const targetUrl = role === 'vendor' ? '/vendor' : '/dashboard';
-        setTimeout(() => {
-          window.location.href = targetUrl;
-        }, 800);
+        if (authData.session) {
+          setSuccessMsg('Account created successfully! Redirecting...');
+          const targetUrl = role === 'vendor' ? '/vendor' : '/dashboard';
+          setTimeout(() => {
+            window.location.href = targetUrl;
+          }, 1000);
+        } else {
+          setSuccessMsg('Registration submitted! If required, please verify your email.');
+          setLoading(false);
+        }
       }
     } catch (err: any) {
-      const fallbackMsg =
-        err?.message && err.message !== '{}'
-          ? err.message
-          : 'An unexpected authentication error occurred.';
-      setErrorMsg(fallbackMsg);
+      console.error('Caught Exception:', err);
+      setErrorMsg(err?.message || 'An unexpected authentication error occurred.');
       setLoading(false);
     }
   };
@@ -122,6 +117,7 @@ function AuthForm() {
           onClick={() => {
             setActiveTab('signin');
             setErrorMsg(null);
+            setSuccessMsg(null);
           }}
           className={`flex-1 py-2.5 text-xs font-bold rounded-2xl transition ${
             activeTab === 'signin'
@@ -136,6 +132,7 @@ function AuthForm() {
           onClick={() => {
             setActiveTab('signup');
             setErrorMsg(null);
+            setSuccessMsg(null);
           }}
           className={`flex-1 py-2.5 text-xs font-bold rounded-2xl transition ${
             activeTab === 'signup'
@@ -163,9 +160,7 @@ function AuthForm() {
         {/* ERROR DISPLAY */}
         {errorMsg && (
           <div className="mb-4 p-3 bg-rose-50 border border-rose-100 rounded-xl text-xs font-medium text-rose-700">
-            {typeof errorMsg === 'string' && errorMsg !== '{}'
-              ? errorMsg
-              : 'Unable to complete registration. Please check your details and try again.'}
+            {errorMsg}
           </div>
         )}
 
@@ -303,4 +298,4 @@ export default function LoginPage() {
       </Suspense>
     </div>
   );
-              }
+}
