@@ -1,121 +1,214 @@
 'use client';
 
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 
-// Mock orders data tailored to the alumni cooperative marketplace
-const mockOrders = [
-  {
-    id: "MSC-9082",
-    date: "July 12, 2026",
-    total: "₦45,000",
-    status: "In Transit",
-    statusColor: "text-amber-600 bg-amber-50 border-amber-100",
-    items: [
-      { name: "Premium Member Polo Shirt (L)", qty: 1, price: "₦15,000" },
-      { name: "Cooperative Rice Scheme - 25kg", qty: 1, price: "₦30,000" }
-    ]
-  },
-  {
-    id: "MSC-8841",
-    date: "June 28, 2026",
-    total: "₦12,500",
-    status: "Delivered",
-    statusColor: "text-emerald-600 bg-emerald-50 border-emerald-100",
-    items: [
-      { name: "Alumni Customized Notebook & Pen Set", qty: 2, price: "₦6,250" }
-    ]
-  }
-];
+interface OrderItem {
+  id: string;
+  product_title: string;
+  quantity: number;
+  unit_price: number;
+}
+
+interface Order {
+  id: string;
+  order_code: string;
+  created_at: string;
+  total_amount: number;
+  status: 'Pending' | 'In Transit' | 'Delivered' | 'Cancelled';
+  delivery_address?: string;
+  order_items: OrderItem[];
+}
 
 export default function OrdersPage() {
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchOrders() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) {
+          window.location.href = '/login';
+          return;
+        }
+
+        // Fetch orders along with nested order items
+        const { data, error } = await supabase
+          .from('orders')
+          .select(`
+            id,
+            order_code,
+            created_at,
+            total_amount,
+            status,
+            delivery_address,
+            order_items (
+              id,
+              product_title,
+              quantity,
+              unit_price
+            )
+          `)
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        setOrders(data || []);
+      } catch (err) {
+        console.error('Error fetching orders:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchOrders();
+  }, []);
+
+  const handleDownloadInvoice = (orderCode: string) => {
+    alert(`Generating invoice for order ${orderCode}...`);
+  };
+
+  const handleTrackPackage = (orderCode: string) => {
+    alert(`Tracking shipment status for order ${orderCode}...`);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center font-sans">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-xs font-bold text-slate-500">Loading Your Orders...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <main className="min-h-screen bg-slate-50/50 py-12 font-sans">
-      <div className="max-w-3xl mx-auto px-4">
-        
-        {/* Header Breadcrumbs & Title */}
-        <div className="mb-8">
-          <div className="flex items-center gap-2 text-xs text-slate-400 font-semibold mb-2">
-            <Link href="/" className="hover:text-slate-600">Home</Link>
-            <span>/</span>
-            <span className="text-slate-600">My Orders</span>
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Purchase History</h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Track and manage your orders from the Mighty Sparrow Alumni Cooperative marketplace.
-          </p>
+    <div className="max-w-4xl mx-auto px-4 py-8 font-sans">
+      {/* BREADCRUMB & HEADER */}
+      <div className="mb-6">
+        <div className="flex items-center gap-1.5 text-xs text-slate-400 mb-2 font-medium">
+          <Link href="/" className="hover:text-emerald-600 transition">
+            Home
+          </Link>
+          <span>/</span>
+          <span className="text-slate-800 font-bold">My Orders</span>
         </div>
 
-        {mockOrders.length === 0 ? (
-          /* Empty State */
-          <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center shadow-sm">
-            <div className="text-4xl mb-4">📦</div>
-            <h3 className="text-sm font-bold text-slate-900 mb-1">No orders placed yet</h3>
-            <p className="text-xs text-slate-400 mb-6">Explore our cooperative market to find discounted products.</p>
-            <Link 
-              href="/shop" 
-              className="inline-block bg-slate-950 text-white text-xs font-bold px-6 py-2.5 rounded-xl hover:bg-slate-800 transition"
-            >
-              Browse Marketplace
-            </Link>
-          </div>
-        ) : (
-          /* Orders List */
-          <div className="space-y-6">
-            {mockOrders.map((order) => (
-              <div 
-                key={order.id} 
-                className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden"
+        <h1 className="text-2xl font-black text-slate-900">Purchase History</h1>
+        <p className="text-xs text-slate-500 mt-1">
+          Track and manage your orders from the Co-Op Marketplace.
+        </p>
+      </div>
+
+      {orders.length === 0 ? (
+        <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center shadow-sm">
+          <p className="text-sm font-bold text-slate-700 mb-2">No past orders found.</p>
+          <p className="text-xs text-slate-400 mb-6">You haven't placed any marketplace orders yet.</p>
+          <Link
+            href="/shop"
+            className="px-5 py-2.5 bg-emerald-600 text-white font-bold text-xs rounded-xl shadow-sm inline-block hover:bg-emerald-700 transition"
+          >
+            Explore Shop
+          </Link>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {orders.map((order) => {
+            const formattedDate = new Date(order.created_at).toLocaleDateString('en-US', {
+              month: 'long',
+              day: 'numeric',
+              year: 'numeric',
+            });
+
+            return (
+              <div
+                key={order.id}
+                className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden"
               >
-                {/* Order Meta Header */}
-                <div className="bg-slate-50/50 px-6 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex items-center gap-4">
+                {/* ORDER HEADER */}
+                <div className="p-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4 bg-slate-50/50">
+                  <div className="flex flex-wrap items-center gap-6 text-xs">
                     <div>
-                      <span className="block text-[10px] uppercase font-bold tracking-wider text-slate-400">Order ID</span>
-                      <span className="text-xs font-bold text-slate-900">{order.id}</span>
+                      <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        Order ID
+                      </span>
+                      <span className="font-black text-slate-900">{order.order_code}</span>
                     </div>
+
                     <div>
-                      <span className="block text-[10px] uppercase font-bold tracking-wider text-slate-400">Date Placed</span>
-                      <span className="text-xs font-semibold text-slate-600">{order.date}</span>
+                      <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        Date Placed
+                      </span>
+                      <span className="font-bold text-slate-700">{formattedDate}</span>
                     </div>
+
                     <div>
-                      <span className="block text-[10px] uppercase font-bold tracking-wider text-slate-400">Total Amount</span>
-                      <span className="text-xs font-bold text-slate-950">{order.total}</span>
+                      <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        Total Amount
+                      </span>
+                      <span className="font-black text-slate-900">
+                        ₦{order.total_amount.toLocaleString()}
+                      </span>
                     </div>
                   </div>
 
-                  <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${order.statusColor}`}>
-                    {order.status}
-                  </span>
+                  {/* STATUS BADGE */}
+                  <div>
+                    <span
+                      className={`px-3 py-1 text-[11px] font-black rounded-full border ${
+                        order.status === 'Delivered'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : order.status === 'In Transit'
+                          ? 'bg-amber-50 text-amber-700 border-amber-200'
+                          : 'bg-slate-100 text-slate-700 border-slate-200'
+                      }`}
+                    >
+                      {order.status}
+                    </span>
+                  </div>
                 </div>
 
-                {/* Items List */}
-                <div className="p-6 divide-y divide-slate-100">
-                  {order.items.map((item, idx) => (
-                    <div key={idx} className="py-3 flex items-center justify-between first:pt-0 last:pb-0">
+                {/* ORDER ITEMS LIST */}
+                <div className="p-5 divide-y divide-slate-100">
+                  {order.order_items?.map((item) => (
+                    <div key={item.id} className="py-3 first:pt-0 last:pb-0 flex items-center justify-between">
                       <div>
-                        <h4 className="text-xs font-bold text-slate-900">{item.name}</h4>
-                        <p className="text-[10px] text-slate-400 mt-0.5">Quantity: {item.qty}</p>
+                        <h3 className="text-xs font-bold text-slate-900">{item.product_title}</h3>
+                        <p className="text-[11px] text-slate-400 mt-0.5">Quantity: {item.quantity}</p>
                       </div>
-                      <span className="text-xs font-semibold text-slate-600">{item.price}</span>
+
+                      <span className="text-xs font-black text-slate-900">
+                        ₦{(item.unit_price * item.quantity).toLocaleString()}
+                      </span>
                     </div>
                   ))}
                 </div>
 
-                {/* Actions Footer */}
-                <div className="px-6 py-3 bg-slate-50/30 border-t border-slate-100 flex justify-end gap-2">
-                  <button className="px-4 py-2 rounded-lg text-[10px] font-bold text-slate-500 hover:text-slate-800 transition">
+                {/* FOOTER ACTIONS */}
+                <div className="px-5 py-4 bg-slate-50/30 border-t border-slate-100 flex items-center justify-end gap-3">
+                  <button
+                    onClick={() => handleDownloadInvoice(order.order_code)}
+                    className="text-xs font-bold text-slate-600 hover:text-slate-900 px-3 py-2 rounded-xl transition"
+                  >
                     Download Invoice
                   </button>
-                  <button className="bg-slate-100 hover:bg-slate-200 text-slate-800 px-4 py-2 rounded-lg text-[10px] font-bold transition">
+
+                  <button
+                    onClick={() => handleTrackPackage(order.order_code)}
+                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition"
+                  >
                     Track Package
                   </button>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-
-      </div>
-    </main>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
