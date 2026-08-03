@@ -106,11 +106,12 @@ export default function ProfilePage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Cleaned payload: only fields guaranteed to exist in basic profiles schema
+      // Passing email solves the "null value in column 'email'" NOT NULL constraint
       const { error } = await supabase
         .from('profiles')
         .upsert({
           id: user.id,
+          email: email, 
           full_name: fullName,
           phone: phone,
           avatar_url: avatarUrl,
