@@ -51,7 +51,7 @@ export default function VendorDashboard() {
         }
       } catch (err) {
         console.error('Error fetching vendor data:', err);
-      } font-sans
+      } finally {
         setLoading(false);
       }
     }
