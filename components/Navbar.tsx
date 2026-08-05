@@ -89,7 +89,6 @@ export default function Navbar() {
     setUser(null);
     setRole(null);
     setIsOpen(false);
-    // Hard refresh on sign out to clear cookies and server component cache
     window.location.href = '/login';
   };
 
@@ -166,3 +165,102 @@ export default function Navbar() {
             </div>
           ) : (
             /* LOGGED-IN EXPLORE PORTAL DROPDOWN */
+            <div className="relative" ref={menuRef}>
+              <button
+                type="button"
+                onClick={() => setIsOpen((prev) => !prev)}
+                className="flex items-center gap-1.5 sm:gap-2 border border-slate-200 hover:border-slate-300 rounded-xl px-2.5 sm:px-3 py-2 bg-white transition focus:outline-none select-none h-9 text-xs font-bold text-slate-800"
+              >
+                <span>Portal</span>
+                <span className={`text-slate-400 text-[10px] transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>
+                  ▼
+                </span>
+              </button>
+
+              {isOpen && (
+                <div className="absolute right-0 mt-3 w-72 max-h-[85vh] overflow-y-auto bg-white border border-slate-100 rounded-2xl shadow-2xl z-50 divide-y divide-slate-100 font-sans">
+                  
+                  {/* ROLE SPECIFIC PORTAL LINKS */}
+                  <div className="py-2">
+                    <span className="block px-4 py-1 text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                      Personal Portal ({role || 'Member'})
+                    </span>
+
+                    <Link
+                      href="/dashboard"
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50"
+                    >
+                      <span>📊</span> Member Dashboard
+                    </Link>
+
+                    {/* ADMIN PORTAL LINK */}
+                    {role === 'admin' && (
+                      <Link
+                        href="/admin"
+                        onClick={() => setIsOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
+                      >
+                        <span>⚙️</span> Admin Control Center
+                      </Link>
+                    )}
+
+                    <Link
+                      href="/wallet"
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50"
+                    >
+                      <span>💳</span> Co-Op Wallet
+                    </Link>
+                    <Link
+                      href="/orders"
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50"
+                    >
+                      <span>📦</span> My Orders
+                    </Link>
+                  </div>
+
+                  {/* MARKETPLACE LINKS */}
+                  <div className="py-2">
+                    <span className="block px-4 py-1 text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                      Marketplace
+                    </span>
+                    <Link
+                      href="/shop"
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50"
+                    >
+                      <span>🛍️</span> Marketplace Store
+                    </Link>
+                    <Link
+                      href="/profile"
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50"
+                    >
+                      <span>👤</span> Profile Settings
+                    </Link>
+                  </div>
+
+                  {/* SIGN OUT */}
+                  <div className="p-2 bg-slate-50">
+                    <button
+                      type="button"
+                      onClick={handleSignOut}
+                      className="w-full text-left flex items-center gap-3 px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                    >
+                      <span>🚪</span> Sign Out
+                    </button>
+                  </div>
+
+                </div>
+              )}
+            </div>
+          )}
+
+        </div>
+
+      </div>
+    </header>
+  );
+}
