@@ -12,6 +12,7 @@ export default function Navbar() {
 
   const [user, setUser] = useState<any>(null);
   const [role, setRole] = useState<string | null>(null);
+  const [isVendor, setIsVendor] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -22,7 +23,7 @@ export default function Navbar() {
   const cart = context?.cart ?? [];
   const cartCount = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
 
-  // 1. Unified Session Sync
+  // 1. Unified Session Sync & Vendor Check
   useEffect(() => {
     let isMounted = true;
 
@@ -31,6 +32,7 @@ export default function Navbar() {
         if (isMounted) {
           setUser(null);
           setRole(null);
+          setIsVendor(false);
           setLoading(false);
         }
         return;
@@ -38,14 +40,23 @@ export default function Navbar() {
 
       if (isMounted) setUser(sessionUser);
 
+      // Fetch user profile role
       const { data: profile } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', sessionUser.id)
         .single();
 
+      // Check if user is registered in the vendors table
+      const { data: vendorData } = await supabase
+        .from('vendors')
+        .select('id')
+        .eq('user_id', sessionUser.id)
+        .maybeSingle();
+
       if (isMounted) {
         setRole(profile?.role || 'member');
+        setIsVendor(!!vendorData || profile?.role === 'vendor');
         setLoading(false);
       }
     };
@@ -88,8 +99,8 @@ export default function Navbar() {
     await supabase.auth.signOut();
     setUser(null);
     setRole(null);
+    setIsVendor(false);
     setIsOpen(false);
-    // Hard refresh on sign out to clear cookies and server component cache
     window.location.href = '/login';
   };
 
@@ -184,51 +195,41 @@ export default function Navbar() {
                   {/* ROLE SPECIFIC PORTAL LINKS */}
                   <div className="py-2">
                     <span className="block px-4 py-1 text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                      Personal Portal ({role || 'Member'})
+                      Personal Portal ({isVendor ? 'Vendor' : 'Member'})
                     </span>
 
-                    {role === 'vendor' ? (
-                      <>
-                        <Link
-                          href="/vendor"
-                          onClick={() => setIsOpen(false)}
-                          className="flex items-center gap-3 px-4 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50"
-                        >
-                          <span>🏪</span> Vendor Portal
-                        </Link>
-                        <Link
-                          href="/vendor/products"
-                          onClick={() => setIsOpen(false)}
-                          className="flex items-center gap-3 px-4 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50"
-                        >
-                          <span>📦</span> My Products
-                        </Link>
-                      </>
-                    ) : (
-                      <>
-                        <Link
-                          href="/dashboard"
-                          onClick={() => setIsOpen(false)}
-                          className="flex items-center gap-3 px-4 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50"
-                        >
-                          <span>📊</span> Member Dashboard
-                        </Link>
-                        <Link
-                          href="/wallet"
-                          onClick={() => setIsOpen(false)}
-                          className="flex items-center gap-3 px-4 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50"
-                        >
-                          <span>💳</span> Co-Op Wallet
-                        </Link>
-                        <Link
-                          href="/orders"
-                          onClick={() => setIsOpen(false)}
-                          className="flex items-center gap-3 px-4 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50"
-                        >
-                          <span>📦</span> My Orders
-                        </Link>
-                      </>
+                    <Link
+                      href="/dashboard"
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50"
+                    >
+                      <span>📊</span> Dashboard
+                    </Link>
+
+                    {isVendor && (
+                      <Link
+                        href="/dashboard"
+                        onClick={() => setIsOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2 text-xs font-bold text-emerald-700 bg-emerald-50/50 hover:bg-emerald-100/50"
+                      >
+                        <span>🏪</span> Alumni Vendor Control Center
+                      </Link>
                     )}
+
+                    <Link
+                      href="/wallet"
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50"
+                    >
+                      <span>💳</span> Co-Op Wallet
+                    </Link>
+                    <Link
+                      href="/orders"
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50"
+                    >
+                      <span>📦</span> My Orders
+                    </Link>
                   </div>
 
                   {/* MARKETPLACE LINKS */}
