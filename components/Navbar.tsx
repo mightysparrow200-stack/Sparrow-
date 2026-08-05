@@ -23,7 +23,6 @@ export default function Navbar() {
   const cart = context?.cart ?? [];
   const cartCount = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
 
-  // 1. Unified Session Sync & Vendor Check
   useEffect(() => {
     let isMounted = true;
 
@@ -40,24 +39,31 @@ export default function Navbar() {
 
       if (isMounted) setUser(sessionUser);
 
-      // Fetch user profile role
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', sessionUser.id)
-        .single();
+      try {
+        // Fetch profile
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', sessionUser.id)
+          .maybeSingle();
 
-      // Check if user is registered in the vendors table
-      const { data: vendorData } = await supabase
-        .from('vendors')
-        .select('id')
-        .eq('user_id', sessionUser.id)
-        .maybeSingle();
+        // Check vendors table
+        const { data: vendorData } = await supabase
+          .from('vendors')
+          .select('id')
+          .eq('user_id', sessionUser.id)
+          .maybeSingle();
 
-      if (isMounted) {
-        setRole(profile?.role || 'member');
-        setIsVendor(!!vendorData || profile?.role === 'vendor');
-        setLoading(false);
+        if (isMounted) {
+          const userRole = profile?.role || 'member';
+          setRole(userRole);
+          // Set vendor to true if vendor record exists OR role is vendor
+          setIsVendor(!!vendorData || userRole === 'vendor');
+        }
+      } catch (err) {
+        console.error('Navbar sync error:', err);
+      } finally {
+        if (isMounted) setLoading(false);
       }
     };
 
@@ -75,7 +81,6 @@ export default function Navbar() {
     };
   }, []);
 
-  // 2. Click Outside & Esc Key Listener
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -124,7 +129,7 @@ export default function Navbar() {
         {/* RIGHT CONTROLS */}
         <div className="flex items-center gap-2 sm:gap-3">
           
-          {/* WALLET DISPLAY (LOGGED IN) */}
+          {/* WALLET DISPLAY */}
           {user && (
             <div className="flex flex-col items-end bg-emerald-50/70 border border-emerald-100/50 px-2.5 py-1 rounded-xl">
               <span className="text-[8px] uppercase tracking-wider text-emerald-600 font-bold leading-tight">
@@ -154,29 +159,18 @@ export default function Navbar() {
           {loading ? (
             <div className="w-20 h-9 bg-slate-100 animate-pulse rounded-xl" />
           ) : !user ? (
-            /* GUEST LINKS */
             <div className="flex items-center gap-1.5 sm:gap-2">
-              <Link 
-                href="/shop" 
-                className="text-xs font-semibold text-slate-600 hover:text-slate-900 px-2 py-1.5 transition"
-              >
+              <Link href="/shop" className="text-xs font-semibold text-slate-600 hover:text-slate-900 px-2 py-1.5 transition">
                 Store
               </Link>
-              <Link 
-                href="/login" 
-                className="text-xs font-semibold text-slate-600 hover:text-slate-900 px-2 py-1.5 transition"
-              >
+              <Link href="/login" className="text-xs font-semibold text-slate-600 hover:text-slate-900 px-2 py-1.5 transition">
                 Sign In
               </Link>
-              <Link
-                href="/login?tab=signup"
-                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition"
-              >
+              <Link href="/login?tab=signup" className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition">
                 Join Coop
               </Link>
             </div>
           ) : (
-            /* LOGGED-IN EXPLORE PORTAL DROPDOWN */
             <div className="relative" ref={menuRef}>
               <button
                 type="button"
@@ -195,7 +189,7 @@ export default function Navbar() {
                   {/* ROLE SPECIFIC PORTAL LINKS */}
                   <div className="py-2">
                     <span className="block px-4 py-1 text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                      Personal Portal ({isVendor ? 'Vendor' : 'Member'})
+                      Personal Portal ({isVendor ? 'Vendor' : role || 'Member'})
                     </span>
 
                     <Link
@@ -206,15 +200,14 @@ export default function Navbar() {
                       <span>📊</span> Dashboard
                     </Link>
 
-                    {isVendor && (
-                      <Link
-                        href="/dashboard"
-                        onClick={() => setIsOpen(false)}
-                        className="flex items-center gap-3 px-4 py-2 text-xs font-bold text-emerald-700 bg-emerald-50/50 hover:bg-emerald-100/50"
-                      >
-                        <span>🏪</span> Alumni Vendor Control Center
-                      </Link>
-                    )}
+                    {/* ALWAYS VISIBLE VENDOR PORTAL OPTION OR FOR VENDORS */}
+                    <Link
+                      href="/dashboard"
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
+                    >
+                      <span>🏪</span> Vendor Control Center
+                    </Link>
 
                     <Link
                       href="/wallet"
