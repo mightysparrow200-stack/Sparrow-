@@ -1,63 +1,112 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabase';
 
-// Mock listings representing what this specific partner vendor has uploaded
-const initialProducts = [
-  {
-    id: "PROD-101",
-    name: "Cooperative Rice Scheme - 25kg",
-    category: "🌾 Groceries & Provisions",
-    price: "₦30,000",
-    stock: 42,
-    status: "Active",
-    statusColor: "text-emerald-600 bg-emerald-50 border-emerald-100",
-    sales: 18,
-    image: "🌾"
-  },
-  {
-    id: "PROD-102",
-    name: "Premium Member Polo Shirt (L)",
-    category: "👕 Merchandise & Apparel",
-    price: "₦15,000",
-    stock: 12,
-    status: "Active",
-    statusColor: "text-emerald-600 bg-emerald-50 border-emerald-100",
-    sales: 5,
-    image: "👕"
-  },
-  {
-    id: "PROD-103",
-    name: "High-Yield Maize Seeds (10kg Bag)",
-    category: "🌾 Groceries & Provisions",
-    price: "₦18,500",
-    stock: 0,
-    status: "Out of Stock",
-    statusColor: "text-rose-600 bg-rose-50 border-rose-100",
-    sales: 30,
-    image: "🌽"
-  },
-  {
-    id: "PROD-104",
-    name: "Customized Alumni Laptop Sleeve",
-    category: "📦 General Household",
-    price: "₦8,000",
-    stock: 15,
-    status: "Pending Review",
-    statusColor: "text-amber-600 bg-amber-50 border-amber-100",
-    sales: 0,
-    image: "💻"
-  }
-];
+interface Product {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+  stock?: number;
+  status?: string;
+  sales?: number;
+  description?: string;
+  image_url?: string;
+}
 
 export default function VendorProductsPage() {
-  const [products, setProducts] = useState(initialProducts);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const handleDelete = (id: string) => {
-    if (confirm("Are you sure you want to delete this product listing?")) {
-      setProducts(products.filter(p => p.id !== id));
+  // Fetch products from Supabase on mount
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      setIsLoading(true);
+      setErrorMsg(null);
+
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      setProducts(data || []);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to fetch products');
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this product listing?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      // Update UI optimistically after deletion
+      setProducts((prev) => prev.filter((p) => p.id !== id));
+    } catch (err: any) {
+      alert(`Delete failed: ${err.message || err}`);
+    }
+  };
+
+  // Helper to render image or fallback icon
+  const renderProductMedia = (url?: string) => {
+    if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+      return (
+        <img
+          src={url}
+          alt="Product thumbnail"
+          className="w-10 h-10 object-cover rounded-lg border border-slate-100"
+        />
+      );
+    }
+    return (
+      <span className="text-2xl bg-slate-50 p-1.5 rounded-lg border border-slate-100 flex items-center justify-center w-10 h-10">
+        {url || '📦'}
+      </span>
+    );
+  };
+
+  // Helper for status badge formatting
+  const getStatusBadge = (stock: number = 0, statusOverride?: string) => {
+    if (statusOverride) {
+      if (statusOverride === 'Pending Review') {
+        return (
+          <span className="inline-block text-[9px] font-bold px-2 py-0.5 rounded-full border text-amber-600 bg-amber-50 border-amber-100">
+            Pending Review
+          </span>
+        );
+      }
+    }
+
+    if (stock === 0) {
+      return (
+        <span className="inline-block text-[9px] font-bold px-2 py-0.5 rounded-full border text-rose-600 bg-rose-50 border-rose-100">
+          Out of Stock
+        </span>
+      );
+    }
+
+    return (
+      <span className="inline-block text-[9px] font-bold px-2 py-0.5 rounded-full border text-emerald-600 bg-emerald-50 border-emerald-100">
+        Active
+      </span>
+    );
   };
 
   return (
@@ -86,10 +135,10 @@ export default function VendorProductsPage() {
           </Link>
         </div>
 
-        {/* --- DIRECT PORTAL NAVIGATION LINKS --- */}
+        {/* Navigation Links */}
         <div className="flex flex-wrap gap-2 mb-8 bg-white border border-slate-100 p-2 rounded-2xl shadow-sm">
-          {/* Active button highlighting the current page */}
           <button 
+            type="button"
             disabled 
             className="flex-1 text-center py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold cursor-default"
           >
@@ -111,6 +160,25 @@ export default function VendorProductsPage() {
           </Link>
         </div>
 
+        {/* Error State Banner */}
+        {errorMsg && (
+          <div className="mb-6 p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-xl">⚠️</span>
+              <div>
+                <h4 className="text-xs font-bold text-rose-950">Database Error</h4>
+                <p className="text-[10px] text-rose-700">{errorMsg}</p>
+              </div>
+            </div>
+            <button 
+              onClick={fetchProducts}
+              className="text-xs font-bold text-rose-700 underline hover:text-rose-900"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
         {/* Quick Stats Grid */}
         <div className="grid grid-cols-3 gap-4 mb-8">
           <div className="bg-white border border-slate-100 p-4 rounded-2xl shadow-sm">
@@ -120,18 +188,24 @@ export default function VendorProductsPage() {
           <div className="bg-white border border-slate-100 p-4 rounded-2xl shadow-sm">
             <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Active Deals</span>
             <span className="text-lg font-bold text-emerald-600">
-              {products.filter(p => p.status === "Active").length}
+              {products.filter((p) => (p.stock === undefined || p.stock > 0) && p.status !== 'Pending Review').length}
             </span>
           </div>
           <div className="bg-white border border-slate-100 p-4 rounded-2xl shadow-sm">
             <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Units Sold</span>
             <span className="text-lg font-bold text-slate-950">
-              {products.reduce((acc, curr) => acc + curr.sales, 0)}
+              {products.reduce((acc, curr) => acc + (curr.sales || 0), 0)}
             </span>
           </div>
         </div>
 
-        {products.length === 0 ? (
+        {/* Loading Spinner */}
+        {isLoading ? (
+          <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center shadow-sm">
+            <div className="w-6 h-6 border-2 border-slate-300 border-t-emerald-600 rounded-full animate-spin mx-auto mb-3" />
+            <p className="text-xs text-slate-500 font-medium">Loading inventory from Supabase...</p>
+          </div>
+        ) : products.length === 0 ? (
           /* Empty State */
           <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center shadow-sm">
             <div className="text-4xl mb-4">🏪</div>
@@ -145,7 +219,7 @@ export default function VendorProductsPage() {
             </Link>
           </div>
         ) : (
-          /* Desktop & Mobile Responsive Inventory List */
+          /* Inventory Table */
           <div className="bg-white border border-slate-100 rounded-3xl shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
@@ -166,7 +240,7 @@ export default function VendorProductsPage() {
                       {/* Product Name & Category */}
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <span className="text-2xl bg-slate-50 p-1.5 rounded-lg border border-slate-100">{product.image}</span>
+                          {renderProductMedia(product.image_url)}
                           <div>
                             <span className="block text-xs font-bold text-slate-900">{product.name}</span>
                             <span className="block text-[10px] text-slate-400">{product.category}</span>
@@ -176,14 +250,12 @@ export default function VendorProductsPage() {
 
                       {/* Status */}
                       <td className="px-6 py-4">
-                        <span className={`inline-block text-[9px] font-bold px-2 py-0.5 rounded-full border ${product.statusColor}`}>
-                          {product.status}
-                        </span>
+                        {getStatusBadge(product.stock ?? 1, product.status)}
                       </td>
 
                       {/* Price */}
                       <td className="px-6 py-4 text-xs font-bold text-slate-900">
-                        {product.price}
+                        ₦{product.price?.toLocaleString()}
                       </td>
 
                       {/* Stock Level */}
@@ -191,19 +263,20 @@ export default function VendorProductsPage() {
                         {product.stock === 0 ? (
                           <span className="text-rose-600 font-bold">Sold Out</span>
                         ) : (
-                          `${product.stock} units`
+                          `${product.stock ?? 'In Stock'}`
                         )}
                       </td>
 
                       {/* Units Sold */}
                       <td className="px-6 py-4 text-xs font-bold text-slate-900 text-center">
-                        {product.sales}
+                        {product.sales ?? 0}
                       </td>
 
-                      {/* Interactive Management Controls */}
+                      {/* Management Actions */}
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-3">
                           <button 
+                            type="button"
                             className="text-slate-400 hover:text-slate-900 text-xs font-semibold transition"
                             onClick={() => alert("Edit item feature coming soon!")}
                           >
@@ -211,6 +284,7 @@ export default function VendorProductsPage() {
                           </button>
                           <span className="text-slate-200">|</span>
                           <button 
+                            type="button"
                             onClick={() => handleDelete(product.id)}
                             className="text-rose-400 hover:text-rose-600 text-xs font-semibold transition"
                           >
