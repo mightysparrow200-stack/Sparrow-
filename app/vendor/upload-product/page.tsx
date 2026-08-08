@@ -114,7 +114,7 @@ export default function VendorUploadPage() {
 
       const { error: dbError } = await supabase.from('products').insert([
         {
-          name: formData.name.trim(),
+          title: formData.name.trim(), // Maps to the "title" column expected by your database table
           category: formData.category,
           price: parsedPrice,
           description: formData.description.trim(),
