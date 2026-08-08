@@ -78,7 +78,7 @@ export default function VendorUploadPage() {
     setSuccess(false);
     setErrorMsg(null);
 
-    let imageUrl = '📦'; // Fallback if no photo is selected
+    let imageUrl = '📦'; // Fallback icon if no photo is uploaded
 
     // 1. Upload Image to Supabase Storage (if selected)
     if (imageFile) {
@@ -102,29 +102,44 @@ export default function VendorUploadPage() {
 
         imageUrl = urlData.publicUrl;
       } catch (err: any) {
-        setErrorMsg(err.message || 'Image upload failed. Please try again.');
+        setErrorMsg(err.message || 'Image upload failed. Please verify your Supabase storage bucket.');
         setIsSubmitting(false);
         return;
       }
     }
 
-    // 2. Add product to context state
+    // 2. Persist Product Record into Supabase DB Table & Local State
     try {
+      const parsedPrice = parseFloat(formData.price);
+
+      const { error: dbError } = await supabase.from('products').insert([
+        {
+          name: formData.name.trim(),
+          category: formData.category,
+          price: parsedPrice,
+          description: formData.description.trim(),
+          image_url: imageUrl,
+        },
+      ]);
+
+      if (dbError) throw dbError;
+
+      // Update local React Context state
       addVendorProduct({
         name: formData.name.trim(),
         category: formData.category,
-        price: parseFloat(formData.price),
+        price: parsedPrice,
         desc: formData.description.trim(),
         img: imageUrl,
       });
 
       setSuccess(true);
       
-      // Reset Form & Image State
+      // Reset Form & Image Preview State
       setFormData({ name: '', price: '', category: '🌾 Groceries & Provisions', description: '' });
       handleRemoveImage();
     } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to list product.');
+      setErrorMsg(err.message || 'Failed to list product in the database.');
     } finally {
       setIsSubmitting(false);
     }
@@ -179,7 +194,7 @@ export default function VendorUploadPage() {
               <span className="text-xl">✅</span>
               <div>
                 <h4 className="text-xs font-bold text-emerald-950">Product listed successfully!</h4>
-                <p className="text-[10px] text-emerald-700">It is now live and available in the active shop list.</p>
+                <p className="text-[10px] text-emerald-700">It is now saved to your database and active on the shop list.</p>
               </div>
             </div>
           )}
