@@ -29,6 +29,7 @@ export default function ShopPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [addedId, setAddedId] = useState<string | number | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchShopProducts() {
@@ -87,8 +88,13 @@ export default function ShopPage() {
     try {
       addToCart(product);
 
+      // Button state indicator
       setAddedId(product.id);
       setTimeout(() => setAddedId(null), 1500);
+
+      // Pop-up Toast Notification
+      setToastMessage(`"${product.title}" added to cart!`);
+      setTimeout(() => setToastMessage(null), 3000);
     } catch (err) {
       console.error('Failed to save to local storage', err);
     }
@@ -100,7 +106,7 @@ export default function ShopPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-100 py-6 px-3 sm:px-6 font-sans">
+    <main className="min-h-screen bg-slate-100 py-6 px-3 sm:px-6 font-sans relative">
       <div className="max-w-5xl mx-auto space-y-4">
         
         {/* Header & Category Filters */}
@@ -211,12 +217,20 @@ export default function ShopPage() {
                           : 'bg-amber-500 text-white hover:bg-amber-600'
                       }`}
                     >
-                      {addedId === product.id ? 'Added!' : 'Add'}
+                      {addedId === product.id ? 'Added ✓' : 'Add'}
                     </button>
                   </div>
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Floating Added-to-Cart Toast */}
+        {toastMessage && (
+          <div className="fixed bottom-6 right-6 z-50 bg-slate-900/90 text-white text-xs font-bold px-4 py-3 rounded-xl shadow-2xl backdrop-blur-md flex items-center gap-2 border border-slate-700/50 animate-bounce">
+            <span>🛒</span>
+            <span>{toastMessage}</span>
           </div>
         )}
 
@@ -326,7 +340,7 @@ export default function ShopPage() {
                   onClick={() => handleBuyNow(selectedProduct)}
                   className="flex-1 h-11 bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-xs transition flex items-center justify-center gap-2"
                 >
-                  🛒 Add to cart
+                  🛒 {addedId === selectedProduct.id ? 'Added to Cart!' : 'Add to cart'}
                 </button>
               </div>
             </div>
