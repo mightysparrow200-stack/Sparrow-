@@ -16,7 +16,7 @@ export default function CartPage() {
   const [walletBalance, setWalletBalance] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Function to refresh cart state from local storage / utility
+  // Function to refresh cart state from local storage
   const refreshCart = useCallback(() => {
     const currentCart = getCart();
     setCart(currentCart);
@@ -63,7 +63,7 @@ export default function CartPage() {
   }, [router, refreshCart]);
 
   const handleRemove = (id: string | number) => {
-    removeFromCart(id);
+    removeFromCart(String(id));
     refreshCart();
     window.dispatchEvent(new Event('cartUpdated'));
   };
