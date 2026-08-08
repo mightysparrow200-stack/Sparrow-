@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { getCart, removeFromCart, clearCart, CartItem } from '@/lib/cart';
 import { useRouter } from 'next/navigation';
@@ -15,6 +15,12 @@ export default function CartPage() {
   const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'card'>('wallet');
   const [walletBalance, setWalletBalance] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
+
+  // Function to refresh cart state from local storage / utility
+  const refreshCart = useCallback(() => {
+    const currentCart = getCart();
+    setCart(currentCart);
+  }, []);
 
   useEffect(() => {
     async function initCart() {
@@ -36,7 +42,7 @@ export default function CartPage() {
           setWalletBalance(profile.wallet_balance || 0);
         }
 
-        setCart(getCart());
+        refreshCart();
       } catch (err) {
         console.error('Cart error:', err);
       } finally {
@@ -45,9 +51,28 @@ export default function CartPage() {
     }
 
     initCart();
-  }, [router]);
 
-  const totalAmount = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
+    // Listen for custom event from Shop Page as well as native browser storage events
+    window.addEventListener('cartUpdated', refreshCart);
+    window.addEventListener('storage', refreshCart);
+
+    return () => {
+      window.removeEventListener('cartUpdated', refreshCart);
+      window.removeEventListener('storage', refreshCart);
+    };
+  }, [router, refreshCart]);
+
+  const handleRemove = (id: string | number) => {
+    removeFromCart(id);
+    refreshCart();
+    window.dispatchEvent(new Event('cartUpdated'));
+  };
+
+  const totalAmount = cart.reduce((acc, item) => {
+    const qty = item.quantity || 1;
+    const price = item.price || 0;
+    return acc + price * qty;
+  }, 0);
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,14 +104,18 @@ export default function CartPage() {
 
       if (orderError) throw orderError;
 
-      const orderItemsPayload = cart.map((item) => ({
-        order_id: order.id,
-        product_id: item.id,
-        product_title: item.title,
-        quantity: item.quantity,
-        unit_price: item.price,
-        total_price: item.price * item.quantity,
-      }));
+      const orderItemsPayload = cart.map((item) => {
+        const qty = item.quantity || 1;
+        const price = item.price || 0;
+        return {
+          order_id: order.id,
+          product_id: item.id,
+          product_title: item.title,
+          quantity: qty,
+          unit_price: price,
+          total_price: price * qty,
+        };
+      });
 
       const { error: itemsError } = await supabase.from('order_items').insert(orderItemsPayload);
       if (itemsError) throw itemsError;
@@ -99,6 +128,7 @@ export default function CartPage() {
       }
 
       clearCart();
+      window.dispatchEvent(new Event('cartUpdated'));
       router.push('/orders');
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to place order.');
@@ -120,11 +150,25 @@ export default function CartPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 font-sans">
-      <div className="mb-8">
-        <Link href="/shop" className="text-xs text-emerald-600 font-bold hover:underline mb-2 inline-block">
-          ← Back to Shop
-        </Link>
-        <h1 className="text-2xl font-black text-slate-900">Your Cart</h1>
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <Link href="/shop" className="text-xs text-emerald-600 font-bold hover:underline mb-2 inline-block">
+            ← Back to Shop
+          </Link>
+          <h1 className="text-2xl font-black text-slate-900">Your Cart</h1>
+        </div>
+        {cart.length > 0 && (
+          <button
+            onClick={() => {
+              clearCart();
+              refreshCart();
+              window.dispatchEvent(new Event('cartUpdated'));
+            }}
+            className="text-xs font-bold text-rose-600 hover:underline"
+          >
+            Clear Cart
+          </button>
+        )}
       </div>
 
       {cart.length === 0 ? (
@@ -132,7 +176,7 @@ export default function CartPage() {
           <p className="text-sm font-bold text-slate-700 mb-4">Your cart is currently empty.</p>
           <Link
             href="/shop"
-            className="px-5 py-2.5 bg-emerald-600 text-white font-bold text-xs rounded-xl shadow-sm inline-block"
+            className="px-5 py-2.5 bg-emerald-600 text-white font-bold text-xs rounded-xl shadow-sm inline-block hover:bg-emerald-700 transition"
           >
             Browse Products
           </Link>
@@ -141,32 +185,33 @@ export default function CartPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-2 space-y-6">
             <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-              <h2 className="text-sm font-black text-slate-900 mb-4">Items</h2>
+              <h2 className="text-sm font-black text-slate-900 mb-4">Items ({cart.length})</h2>
               <div className="divide-y divide-slate-100">
-                {cart.map((item) => (
-                  <div key={item.id} className="py-3 flex items-center justify-between">
-                    <div>
-                      <h3 className="text-xs font-bold text-slate-800">{item.title}</h3>
-                      <p className="text-[10px] text-slate-400">
-                        Qty: {item.quantity} × ₦{item.price.toLocaleString()}
-                      </p>
+                {cart.map((item, idx) => {
+                  const qty = item.quantity || 1;
+                  const price = item.price || 0;
+                  return (
+                    <div key={item.id ? `${item.id}-${idx}` : idx} className="py-3 flex items-center justify-between">
+                      <div>
+                        <h3 className="text-xs font-bold text-slate-800">{item.title}</h3>
+                        <p className="text-[10px] text-slate-400">
+                          Qty: {qty} × ₦{price.toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <span className="text-xs font-black text-slate-900">
+                          ₦{(price * qty).toLocaleString()}
+                        </span>
+                        <button
+                          onClick={() => handleRemove(item.id)}
+                          className="text-[10px] text-rose-500 font-bold hover:underline"
+                        >
+                          Remove
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <span className="text-xs font-black text-slate-900">
-                        ₦{(item.price * item.quantity).toLocaleString()}
-                      </span>
-                      <button
-                        onClick={() => {
-                          removeFromCart(item.id);
-                          setCart(getCart());
-                        }}
-                        className="text-[10px] text-rose-500 font-bold hover:underline"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
