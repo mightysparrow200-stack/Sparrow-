@@ -18,6 +18,10 @@ function AuthForm() {
   const [phone, setPhone] = useState('');
   const [role, setRole] = useState<'member' | 'vendor'>('member');
 
+  // Vendor-Specific Fields
+  const [businessName, setBusinessName] = useState('');
+  const [category, setCategory] = useState('General');
+
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -53,10 +57,17 @@ function AuthForm() {
 
         if (data.session) {
           setSuccessMsg('Signed in successfully! Redirecting...');
-          // Force a hard reload so cookies are sent with the dashboard request
-          window.location.href = role === 'vendor' ? '/vendor' : '/dashboard';
+          window.location.href = '/dashboard';
         }
       } else {
+        // Validation for Vendor
+        if (role === 'vendor' && !businessName.trim()) {
+          setErrorMsg('Please enter your Business / Store Name.');
+          setLoading(false);
+          return;
+        }
+
+        // 1. Register Auth User
         const { data: authData, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
@@ -77,6 +88,7 @@ function AuthForm() {
         }
 
         if (authData.user) {
+          // 2. Insert/Upsert into Profiles Table
           const { error: profileError } = await supabase.from('profiles').upsert({
             id: authData.user.id,
             full_name: fullName,
@@ -87,12 +99,26 @@ function AuthForm() {
           if (profileError) {
             console.error('Profile sync notice:', profileError.message);
           }
+
+          // 3. Insert into Vendors Table if Role is 'vendor'
+          if (role === 'vendor') {
+            const { error: vendorError } = await supabase.from('vendors').upsert({
+              user_id: authData.user.id,
+              business_name: businessName,
+              category: category,
+              status: 'approved', // Auto-approve or set to 'pending' based on preference
+            });
+
+            if (vendorError) {
+              console.error('Vendor setup notice:', vendorError.message);
+            }
+          }
         }
 
         if (authData.session) {
           setSuccessMsg('Account created successfully! Redirecting...');
           setTimeout(() => {
-            window.location.href = role === 'vendor' ? '/vendor' : '/dashboard';
+            window.location.href = '/dashboard';
           }, 800);
         } else {
           setSuccessMsg('Account registered! Please sign in below.');
@@ -147,12 +173,12 @@ function AuthForm() {
       <div className="p-6 sm:p-8">
         <div className="text-center mb-6">
           <h1 className="text-xl font-black text-slate-900">
-            {activeTab === 'signin' ? 'Welcome Back' : 'Member Registration'}
+            {activeTab === 'signin' ? 'Welcome Back' : 'Registration Portal'}
           </h1>
           <p className="text-xs text-slate-500 mt-1">
             {activeTab === 'signin'
-              ? 'Access your alumni co-op portal and wallet'
-              : 'Join the community to unlock member prices and benefits'}
+              ? 'Access your alumni co-op portal and store'
+              : 'Join as a co-op member or register your business'}
           </p>
         </div>
 
@@ -228,6 +254,42 @@ function AuthForm() {
                   </button>
                 </div>
               </div>
+
+              {/* DYNAMIC VENDOR FIELDS */}
+              {role === 'vendor' && (
+                <div className="p-3.5 bg-emerald-50/50 border border-emerald-200 rounded-2xl space-y-3">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-emerald-900 mb-1">
+                      Business / Store Name
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Mighty Sparrow Agro"
+                      value={businessName}
+                      onChange={(e) => setBusinessName(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-white border border-emerald-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-emerald-900 mb-1">
+                      Store Category
+                    </label>
+                    <select
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-white border border-emerald-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition"
+                    >
+                      <option value="General">General Marketplace</option>
+                      <option value="Agriculture">Agriculture & Food</option>
+                      <option value="Electronics">Electronics & Gadgets</option>
+                      <option value="Apparel">Apparel & Fashion</option>
+                      <option value="Services">Services & Logistics</option>
+                    </select>
+                  </div>
+                </div>
+              )}
             </>
           )}
 
