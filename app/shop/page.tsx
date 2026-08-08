@@ -88,6 +88,9 @@ export default function ShopPage() {
       const updatedCart = [...existingCart, product];
       localStorage.setItem('cart', JSON.stringify(updatedCart));
 
+      // Dispatch event to update Cart listeners across the app
+      window.dispatchEvent(new Event('cartUpdated'));
+
       setAddedId(product.id);
       setTimeout(() => setAddedId(null), 1500);
     } catch (err) {
