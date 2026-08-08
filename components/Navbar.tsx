@@ -154,7 +154,7 @@ export default function Navbar() {
                         </span>
                         <nav className="space-y-2">
                           <Link
-                            href="/marketplace"
+                            href="/shop"
                             onClick={() => setIsPortalOpen(false)}
                             className="flex items-center gap-2 text-xs font-bold text-slate-800 hover:text-emerald-600 transition"
                           >
