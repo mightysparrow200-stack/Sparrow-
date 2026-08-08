@@ -7,7 +7,7 @@ export default function Navbar() {
   const [isPortalOpen, setIsPortalOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-slate-100 px-4 py-3">
+    <header className="sticky top-0 z-50 bg-white border-b border-slate-100 px-4 py-3 font-sans">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         
         {/* Brand / Logo */}
@@ -21,12 +21,7 @@ export default function Navbar() {
 
         {/* Right Section Controls */}
         <div className="flex items-center gap-3">
-          {/* Wallet Badge */}
-          <div className="hidden sm:flex items-center gap-1.5 bg-emerald-50/80 border border-emerald-100 px-3 py-1.5 rounded-xl">
-            <span className="text-[9px] font-bold text-emerald-800 uppercase tracking-wider">Co-Op Wallet</span>
-            <span className="text-xs font-bold text-emerald-600">₦0.00</span>
-          </div>
-
+          
           {/* Cart Icon */}
           <Link 
             href="/cart" 
@@ -44,114 +39,101 @@ export default function Navbar() {
               className="flex items-center gap-1.5 bg-slate-50 hover:bg-slate-100 text-slate-900 text-xs font-bold px-3 py-2 rounded-xl border border-slate-200/80 transition"
             >
               <span>Portal</span>
-              <span className={`text-[10px] transition-transform ${isPortalOpen ? 'rotate-180' : ''}`}>▲</span>
+              <span className={`text-[10px] transition-transform ${isPortalOpen ? 'rotate-180' : ''}`}>▼</span>
             </button>
 
             {isPortalOpen && (
               <>
-                {/* Backdrop overlay to close on tap outside */}
+                {/* Backdrop overlay to close on click outside */}
                 <div 
                   className="fixed inset-0 z-40" 
                   onClick={() => setIsPortalOpen(false)} 
                 />
 
-                {/* Dropdown Menu Box */}
-                <div className="absolute right-0 mt-2 w-64 bg-white border border-slate-100 rounded-2xl shadow-xl z-50 p-3 space-y-3">
+                {/* Dropdown Menu matching exact original style */}
+                <div className="absolute right-0 mt-2 w-60 bg-white border border-slate-100 rounded-2xl shadow-xl z-50 p-4 space-y-4 text-left">
                   
-                  {/* Section 1: Personal Portal (Member) */}
+                  {/* Category 1: Personal Portal */}
                   <div>
-                    <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-1">
-                      Personal Portal (Member)
+                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+                      PERSONAL PORTAL (MEMBER)
                     </span>
-                    <nav className="space-y-0.5">
+                    <nav className="space-y-2">
                       <Link
                         href="/dashboard"
                         onClick={() => setIsPortalOpen(false)}
-                        className="flex items-center gap-2.5 px-2.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 rounded-xl transition"
+                        className="flex items-center gap-2 text-xs font-bold text-slate-800 hover:text-emerald-600 transition"
                       >
-                        📊 Member Dashboard
+                        <span>📊</span>
+                        <span>Member Dashboard</span>
                       </Link>
                       <Link
                         href="/wallet"
                         onClick={() => setIsPortalOpen(false)}
-                        className="flex items-center gap-2.5 px-2.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 rounded-xl transition"
+                        className="flex items-center gap-2 text-xs font-bold text-slate-800 hover:text-emerald-600 transition"
                       >
-                        💳 Co-Op Wallet
+                        <span>💳</span>
+                        <span>Co-Op Wallet</span>
                       </Link>
                       <Link
                         href="/orders"
                         onClick={() => setIsPortalOpen(false)}
-                        className="flex items-center gap-2.5 px-2.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 rounded-xl transition"
+                        className="flex items-center gap-2 text-xs font-bold text-slate-800 hover:text-emerald-600 transition"
                       >
-                        📦 My Orders
+                        <span>📦</span>
+                        <span>My Orders</span>
                       </Link>
                     </nav>
                   </div>
 
-                  <hr className="border-slate-100" />
-
-                  {/* Section 2: Marketplace */}
+                  {/* Category 2: Marketplace */}
                   <div>
-                    <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-1">
-                      Marketplace
+                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+                      MARKETPLACE
                     </span>
-                    <nav className="space-y-0.5">
+                    <nav className="space-y-2">
                       <Link
                         href="/marketplace"
                         onClick={() => setIsPortalOpen(false)}
-                        className="flex items-center gap-2.5 px-2.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 rounded-xl transition"
+                        className="flex items-center gap-2 text-xs font-bold text-slate-800 hover:text-emerald-600 transition"
                       >
-                        🛍️ Marketplace Store
+                        <span>🛍️</span>
+                        <span>Marketplace Store</span>
                       </Link>
                       <Link
-                        href="/settings"
+                        href="/profile"
                         onClick={() => setIsPortalOpen(false)}
-                        className="flex items-center gap-2.5 px-2.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 rounded-xl transition"
+                        className="flex items-center gap-2 text-xs font-bold text-slate-800 hover:text-emerald-600 transition"
                       >
-                        👤 Profile Settings
+                        <span>👤</span>
+                        <span>Profile Settings</span>
                       </Link>
                     </nav>
                   </div>
 
-                  <hr className="border-slate-100" />
-
-                  {/* Section 3: Vendor Portal (NEW) */}
+                  {/* Category 3: Vendor Portal */}
                   <div>
-                    <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-1">
-                      Vendor Portal
+                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+                      VENDOR PORTAL
                     </span>
-                    <nav className="space-y-0.5">
+                    <nav className="space-y-2">
                       <Link
                         href="/vendor/products"
                         onClick={() => setIsPortalOpen(false)}
-                        className="flex items-center gap-2.5 px-2.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 rounded-xl transition"
+                        className="flex items-center gap-2 text-xs font-bold text-slate-800 hover:text-emerald-600 transition"
                       >
-                        📦 My Products
+                        <span>📦</span>
+                        <span>My Products</span>
                       </Link>
                       <Link
                         href="/vendor/upload-product"
                         onClick={() => setIsPortalOpen(false)}
-                        className="flex items-center gap-2.5 px-2.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 rounded-xl transition"
+                        className="flex items-center gap-2 text-xs font-bold text-slate-800 hover:text-emerald-600 transition"
                       >
-                        ➕ Upload Product
+                        <span>➕</span>
+                        <span>Upload Product</span>
                       </Link>
                     </nav>
-                  </div>
-
-                  <hr className="border-slate-100" />
-
-                  {/* Section 4: Authentication */}
-                  <div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsPortalOpen(false);
-                        // handle sign out logic here
-                      }}
-                      className="w-full flex items-center gap-2.5 px-2.5 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition"
-                    >
-                      🚪 Sign Out
-                    </button>
                   </div>
 
                 </div>
