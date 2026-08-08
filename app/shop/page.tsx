@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { addToCart } from '@/lib/cart';
 
 export interface Product {
   id: string | number;
@@ -84,12 +85,7 @@ export default function ShopPage() {
   const handleAddToCart = (product: Product, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     try {
-      const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
-      const updatedCart = [...existingCart, product];
-      localStorage.setItem('cart', JSON.stringify(updatedCart));
-
-      // Dispatch event to update Cart listeners across the app
-      window.dispatchEvent(new Event('cartUpdated'));
+      addToCart(product);
 
       setAddedId(product.id);
       setTimeout(() => setAddedId(null), 1500);
