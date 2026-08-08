@@ -53,7 +53,7 @@ export default function VendorProductsPage() {
   };
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
-    e.stopPropagation(); // Prevent opening modal when clicking delete
+    e.stopPropagation(); // Stop opening modal when clicking delete
     if (!confirm('Are you sure you want to delete this product listing?')) return;
 
     try {
@@ -79,12 +79,12 @@ export default function VendorProductsPage() {
         <img
           src={url}
           alt="Product thumbnail"
-          className="w-10 h-10 object-cover rounded-lg border border-slate-100"
+          className="w-10 h-10 object-cover rounded-lg border border-slate-100 shrink-0"
         />
       );
     }
     return (
-      <span className="text-2xl bg-slate-50 p-1.5 rounded-lg border border-slate-100 flex items-center justify-center w-10 h-10">
+      <span className="text-2xl bg-slate-50 p-1.5 rounded-lg border border-slate-100 flex items-center justify-center w-10 h-10 shrink-0">
         {url || '📦'}
       </span>
     );
@@ -118,7 +118,7 @@ export default function VendorProductsPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-50/50 py-10 font-sans">
+    <main className="min-h-screen bg-slate-50/50 py-10 font-sans relative">
       <div className="max-w-4xl mx-auto px-4">
 
         {/* Dashboard Header Banner */}
@@ -131,7 +131,7 @@ export default function VendorProductsPage() {
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">Your Uploaded Products</h1>
             <p className="text-xs text-slate-500">
-              Manage your active listings, track total sales, and click any item to view details.
+              Manage your active listings, track total sales, and click any item to view expanded details.
             </p>
           </div>
           
@@ -246,7 +246,7 @@ export default function VendorProductsPage() {
                     <tr 
                       key={product.id} 
                       onClick={() => setSelectedProduct(product)}
-                      className="hover:bg-slate-50/50 cursor-pointer transition group"
+                      className="hover:bg-slate-50 cursor-pointer transition group"
                     >
                       
                       {/* Product Name & Category */}
@@ -287,22 +287,21 @@ export default function VendorProductsPage() {
 
                       {/* Management Actions */}
                       <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-3">
+                        <div className="flex items-center justify-end gap-2">
                           <button 
                             type="button"
-                            className="text-emerald-600 hover:text-emerald-800 text-xs font-semibold transition"
+                            className="bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 text-xs font-bold px-3 py-1.5 rounded-lg transition"
                             onClick={(e) => {
                               e.stopPropagation();
                               setSelectedProduct(product);
                             }}
                           >
-                            Expand
+                            👁️ Open
                           </button>
-                          <span className="text-slate-200">|</span>
                           <button 
                             type="button"
                             onClick={(e) => handleDelete(e, product.id)}
-                            className="text-rose-400 hover:text-rose-600 text-xs font-semibold transition"
+                            className="bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 text-xs font-bold px-3 py-1.5 rounded-lg transition"
                           >
                             Delete
                           </button>
@@ -319,116 +318,117 @@ export default function VendorProductsPage() {
 
       </div>
 
-      {/* Expanded Product Detail Modal */}
+      {/* Expanded Wide Product Detail Modal */}
       {selectedProduct && (
         <div 
-          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-[999] bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto"
           onClick={() => setSelectedProduct(null)}
         >
           <div 
-            className="bg-white w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl border border-slate-100 flex flex-col md:flex-row max-h-[90vh]"
+            className="bg-white w-full max-w-3xl rounded-3xl overflow-hidden shadow-2xl border border-slate-200 flex flex-col md:flex-row my-auto max-h-[90vh] relative"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Modal Image Area */}
-            <div className="md:w-1/2 bg-slate-50 relative min-h-[220px] md:min-h-full flex items-center justify-center p-4">
+            {/* Modal Image Section */}
+            <div className="md:w-1/2 bg-slate-900 relative min-h-[280px] md:min-h-full flex items-center justify-center p-6">
               {selectedProduct.image_url?.startsWith('http') ? (
                 <img
                   src={selectedProduct.image_url}
                   alt={selectedProduct.title || selectedProduct.name}
-                  className="w-full h-full object-cover rounded-2xl"
+                  className="w-full h-full max-h-[380px] object-contain rounded-2xl"
                 />
               ) : (
-                <span className="text-6xl">{selectedProduct.image_url || '📦'}</span>
+                <span className="text-8xl">{selectedProduct.image_url || '📦'}</span>
               )}
-              
+
+              {/* Mobile Close Button */}
               <button
                 type="button"
                 onClick={() => setSelectedProduct(null)}
                 aria-label="Close product view"
-                className="md:hidden absolute top-3 right-3 bg-slate-900/70 text-white w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
+                className="md:hidden absolute top-4 right-4 bg-white/20 hover:bg-white/40 text-white w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold backdrop-blur-sm transition"
               >
                 ✕
               </button>
             </div>
 
-            {/* Modal Content */}
-            <div className="md:w-1/2 p-6 flex flex-col justify-between overflow-y-auto">
+            {/* Modal Content Details */}
+            <div className="md:w-1/2 p-6 md:p-8 flex flex-col justify-between overflow-y-auto bg-white">
               <div>
-                {/* Header Actions */}
-                <div className="hidden md:flex justify-between items-center mb-4">
-                  <span className="text-[10px] font-extrabold text-emerald-600 uppercase tracking-wider bg-emerald-50 px-2.5 py-1 rounded-full">
+                {/* Header Category & Desktop Close */}
+                <div className="flex justify-between items-center mb-4">
+                  <span className="text-[10px] font-extrabold text-emerald-700 uppercase tracking-wider bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
                     {selectedProduct.category}
                   </span>
                   <button
                     type="button"
                     onClick={() => setSelectedProduct(null)}
                     aria-label="Close dialog"
-                    className="text-slate-400 hover:text-slate-700 text-sm font-bold w-6 h-6 flex items-center justify-center rounded-full hover:bg-slate-100 transition"
+                    className="hidden md:flex text-slate-400 hover:text-slate-900 text-sm font-bold w-8 h-8 items-center justify-center rounded-full hover:bg-slate-100 transition"
                   >
                     ✕
                   </button>
                 </div>
 
-                {/* Title */}
-                <h2 className="text-xl font-bold text-slate-900 leading-tight mb-2">
+                {/* Product Title */}
+                <h2 className="text-2xl font-black text-slate-900 leading-snug mb-3">
                   {selectedProduct.title || selectedProduct.name}
                 </h2>
 
-                {/* Vendor Rating Box */}
-                <div className="bg-slate-50 border border-slate-100 rounded-2xl p-3 mb-4 flex items-center justify-between">
+                {/* Vendor Info & Rating */}
+                <div className="bg-slate-50 border border-slate-200/70 rounded-2xl p-4 mb-5 flex items-center justify-between">
                   <div>
-                    <p className="text-[10px] font-bold uppercase text-slate-400">Vendor</p>
+                    <p className="text-[10px] font-extrabold uppercase text-slate-400">Vendor</p>
                     <p className="text-xs font-bold text-slate-800">
-                      {selectedProduct.vendor_name || 'Verified Cooperative Vendor'}
+                      {selectedProduct.vendor_name || 'Verified Cooperative Partner'}
                     </p>
                   </div>
                   <div className="text-right">
-                    <div className="flex items-center gap-1 text-xs font-bold text-slate-900">
-                      <span className="text-amber-400 text-sm">★</span>
+                    <div className="flex items-center justify-end gap-1 text-xs font-black text-slate-900">
+                      <span className="text-amber-400 text-base">★</span>
                       <span>{selectedProduct.vendor_rating || 4.8} / 5.0</span>
                     </div>
-                    <p className="text-[9px] text-emerald-600 font-semibold">Top Rated</p>
+                    <span className="text-[9px] font-bold text-emerald-600">Top Rated Seller</span>
                   </div>
                 </div>
 
-                {/* Price & Stock Stats */}
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div className="bg-slate-50/60 p-3 rounded-xl">
-                    <p className="text-[10px] font-bold uppercase text-slate-400">Price</p>
-                    <p className="text-lg font-black text-slate-900">
+                {/* Price & Stats */}
+                <div className="grid grid-cols-2 gap-3 mb-5">
+                  <div className="bg-emerald-50/50 border border-emerald-100 p-3.5 rounded-2xl">
+                    <p className="text-[10px] font-extrabold uppercase text-emerald-800">Selling Price</p>
+                    <p className="text-xl font-black text-emerald-950">
                       ₦{selectedProduct.price?.toLocaleString()}
                     </p>
                   </div>
-                  <div className="bg-slate-50/60 p-3 rounded-xl">
-                    <p className="text-[10px] font-bold uppercase text-slate-400">Total Sold</p>
-                    <p className="text-lg font-black text-slate-900">
-                      {selectedProduct.sales || 0} units
+                  <div className="bg-slate-50 border border-slate-100 p-3.5 rounded-2xl">
+                    <p className="text-[10px] font-extrabold uppercase text-slate-400">Units Sold</p>
+                    <p className="text-xl font-black text-slate-900">
+                      {selectedProduct.sales || 0}
                     </p>
                   </div>
                 </div>
 
                 {/* Description */}
                 <div className="mb-6">
-                  <p className="text-[10px] font-bold uppercase text-slate-400 mb-1">Description</p>
-                  <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-line">
-                    {selectedProduct.description || 'No description provided for this product.'}
+                  <p className="text-[10px] font-extrabold uppercase text-slate-400 mb-1.5">Description</p>
+                  <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-line bg-slate-50/50 p-3.5 rounded-2xl border border-slate-100 max-h-40 overflow-y-auto">
+                    {selectedProduct.description || 'No detailed description provided for this product.'}
                   </p>
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex gap-2 pt-4 border-t border-slate-100">
+              {/* Bottom Actions */}
+              <div className="flex gap-3 pt-4 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setSelectedProduct(null)}
-                  className="flex-1 py-3 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-50 transition"
+                  className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition"
                 >
                   Close
                 </button>
                 <button
                   type="button"
                   onClick={(e) => handleDelete(e, selectedProduct.id)}
-                  className="py-3 px-4 bg-rose-50 border border-rose-100 text-rose-600 rounded-xl text-xs font-bold hover:bg-rose-100 transition"
+                  className="py-3 px-5 bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 rounded-xl text-xs font-bold transition"
                 >
                   Delete Item
                 </button>
