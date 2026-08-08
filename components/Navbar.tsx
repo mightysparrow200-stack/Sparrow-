@@ -1,15 +1,41 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { getCart } from '@/lib/cart';
 
 export default function Navbar() {
   const [isPortalOpen, setIsPortalOpen] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
   const pathname = usePathname();
 
-  // Check if current route belongs to the vendor portal
+  // Check if current route belongs to vendor portal
   const isVendorPage = pathname?.startsWith('/vendor');
+
+  // Sync cart count from local storage
+  const updateCartCount = () => {
+    try {
+      const items = getCart();
+      const total = items.reduce((sum, item) => sum + (item.quantity || 1), 0);
+      setCartCount(total);
+    } catch {
+      setCartCount(0);
+    }
+  };
+
+  useEffect(() => {
+    updateCartCount();
+
+    // Listen for custom cart events & window focus to update badge dynamically
+    window.addEventListener('storage', updateCartCount);
+    window.addEventListener('cartUpdated', updateCartCount);
+
+    return () => {
+      window.removeEventListener('storage', updateCartCount);
+      window.removeEventListener('cartUpdated', updateCartCount);
+    };
+  }, [pathname]);
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-slate-100 px-4 py-3 font-sans">
@@ -29,14 +55,19 @@ export default function Navbar() {
         {/* Right Section Controls */}
         <div className="flex items-center gap-3">
           
-          {/* Cart Icon (Hidden on vendor pages if desired) */}
+          {/* Cart Icon with Live Count Badge */}
           {!isVendorPage && (
             <Link 
               href="/cart" 
-              className="p-2 bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-600 transition"
+              className="relative p-2 bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-600 transition flex items-center justify-center"
               aria-label="View Cart"
             >
-              🛒
+              <span className="text-base">🛒</span>
+              {cartCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-white text-[10px] font-extrabold w-5 h-5 rounded-full flex items-center justify-center shadow-xs animate-scale-in">
+                  {cartCount > 99 ? '99+' : cartCount}
+                </span>
+              )}
             </Link>
           )}
 
