@@ -24,23 +24,8 @@ export default function VendorProductsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Selected product state for modal view/edit
+  // Selected product state for expanded modal view
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-
-  // Edit mode state & form inputs
-  const [isEditing, setIsEditing] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [editForm, setEditForm] = useState<{
-    price: number;
-    stock: number;
-    category: string;
-    description: string;
-  }>({
-    price: 0,
-    stock: 0,
-    category: '',
-    description: '',
-  });
 
   // Fetch products from Supabase on mount
   useEffect(() => {
@@ -67,62 +52,8 @@ export default function VendorProductsPage() {
     }
   };
 
-  // Open modal and initialize edit form values
-  const handleOpenModal = (product: Product) => {
-    setSelectedProduct(product);
-    setIsEditing(false);
-    setEditForm({
-      price: product.price || 0,
-      stock: product.stock ?? 1,
-      category: product.category || '',
-      description: product.description || '',
-    });
-  };
-
-  // Close modal and reset edit state
-  const handleCloseModal = () => {
-    setSelectedProduct(null);
-    setIsEditing(false);
-  };
-
-  // Handle saving product changes to Supabase
-  const handleSaveProduct = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedProduct) return;
-
-    try {
-      setIsSaving(true);
-
-      const updates = {
-        price: Number(editForm.price),
-        stock: Number(editForm.stock),
-        category: editForm.category,
-        description: editForm.description,
-      };
-
-      const { error } = await supabase
-        .from('products')
-        .update(updates)
-        .eq('id', selectedProduct.id);
-
-      if (error) throw error;
-
-      // Update state locally
-      const updatedProduct = { ...selectedProduct, ...updates };
-      setProducts((prev) =>
-        prev.map((p) => (p.id === selectedProduct.id ? updatedProduct : p))
-      );
-      setSelectedProduct(updatedProduct);
-      setIsEditing(false);
-    } catch (err: any) {
-      alert(`Failed to save changes: ${err.message || err}`);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   const handleDelete = async (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
+    e.stopPropagation(); // Stop opening modal when clicking delete
     if (!confirm('Are you sure you want to delete this product listing?')) return;
 
     try {
@@ -133,13 +64,15 @@ export default function VendorProductsPage() {
 
       if (error) throw error;
 
+      // Update UI optimistically after deletion
       setProducts((prev) => prev.filter((p) => p.id !== id));
-      if (selectedProduct?.id === id) handleCloseModal();
+      if (selectedProduct?.id === id) setSelectedProduct(null);
     } catch (err: any) {
       alert(`Delete failed: ${err.message || err}`);
     }
   };
 
+  // Helper to render image or fallback icon
   const renderProductMedia = (url?: string) => {
     if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
       return (
@@ -157,13 +90,16 @@ export default function VendorProductsPage() {
     );
   };
 
+  // Helper for status badge formatting
   const getStatusBadge = (stock: number = 0, statusOverride?: string) => {
-    if (statusOverride && statusOverride === 'Pending Review') {
-      return (
-        <span className="inline-block text-[9px] font-bold px-2 py-0.5 rounded-full border text-amber-600 bg-amber-50 border-amber-100">
-          Pending Review
-        </span>
-      );
+    if (statusOverride) {
+      if (statusOverride === 'Pending Review') {
+        return (
+          <span className="inline-block text-[9px] font-bold px-2 py-0.5 rounded-full border text-amber-600 bg-amber-50 border-amber-100">
+            Pending Review
+          </span>
+        );
+      }
     }
 
     if (stock === 0) {
@@ -195,7 +131,7 @@ export default function VendorProductsPage() {
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">Your Uploaded Products</h1>
             <p className="text-xs text-slate-500">
-              Manage your active listings, update stock levels, and edit prices seamlessly.
+              Manage your active listings, track total sales, and click any item to view expanded details.
             </p>
           </div>
           
@@ -206,6 +142,50 @@ export default function VendorProductsPage() {
             + Upload New Product
           </Link>
         </div>
+
+        {/* Navigation Links */}
+        <div className="flex flex-wrap gap-2 mb-8 bg-white border border-slate-100 p-2 rounded-2xl shadow-sm">
+          <button 
+            type="button"
+            disabled 
+            className="flex-1 text-center py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold cursor-default"
+          >
+            📦 My Products
+          </button>
+          
+          <Link 
+            href="/vendor/upload-product" 
+            className="flex-1 text-center py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition"
+          >
+            ➕ Upload Product
+          </Link>
+          
+          <Link 
+            href="/vendor/profile" 
+            className="flex-1 text-center py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition"
+          >
+            👤 Profile & Payouts
+          </Link>
+        </div>
+
+        {/* Error State Banner */}
+        {errorMsg && (
+          <div className="mb-6 p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-xl">⚠️</span>
+              <div>
+                <h4 className="text-xs font-bold text-rose-950">Database Error</h4>
+                <p className="text-[10px] text-rose-700">{errorMsg}</p>
+              </div>
+            </div>
+            <button 
+              onClick={fetchProducts}
+              className="text-xs font-bold text-rose-700 underline hover:text-rose-900"
+            >
+              Retry
+            </button>
+          </div>
+        )}
 
         {/* Quick Stats Grid */}
         <div className="grid grid-cols-3 gap-4 mb-8">
@@ -234,6 +214,7 @@ export default function VendorProductsPage() {
             <p className="text-xs text-slate-500 font-medium">Loading inventory from Supabase...</p>
           </div>
         ) : products.length === 0 ? (
+          /* Empty State */
           <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center shadow-sm">
             <div className="text-4xl mb-4">🏪</div>
             <h3 className="text-sm font-bold text-slate-900 mb-1">No products uploaded yet</h3>
@@ -255,7 +236,7 @@ export default function VendorProductsPage() {
                     <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-slate-400">Product</th>
                     <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-slate-400">Status</th>
                     <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-slate-400">Price</th>
-                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-center">Stock</th>
+                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-center">Rating</th>
                     <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-center">Sales</th>
                     <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-right">Actions</th>
                   </tr>
@@ -264,9 +245,10 @@ export default function VendorProductsPage() {
                   {products.map((product) => (
                     <tr 
                       key={product.id} 
-                      onClick={() => handleOpenModal(product)}
+                      onClick={() => setSelectedProduct(product)}
                       className="hover:bg-slate-50 cursor-pointer transition group"
                     >
+                      {/* Product Name & Category */}
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           {renderProductMedia(product.image_url)}
@@ -278,10 +260,31 @@ export default function VendorProductsPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">{getStatusBadge(product.stock ?? 1, product.status)}</td>
-                      <td className="px-6 py-4 text-xs font-bold text-slate-900">₦{product.price?.toLocaleString()}</td>
-                      <td className="px-6 py-4 text-xs font-bold text-slate-700 text-center">{product.stock ?? 1}</td>
-                      <td className="px-6 py-4 text-xs font-bold text-slate-900 text-center">{product.sales ?? 0}</td>
+
+                      {/* Status */}
+                      <td className="px-6 py-4">
+                        {getStatusBadge(product.stock ?? 1, product.status)}
+                      </td>
+
+                      {/* Price */}
+                      <td className="px-6 py-4 text-xs font-bold text-slate-900">
+                        ₦{product.price?.toLocaleString()}
+                      </td>
+
+                      {/* Vendor Rating */}
+                      <td className="px-6 py-4 text-center">
+                        <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-700 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">
+                          <span className="text-amber-400">★</span>
+                          <span>{product.vendor_rating || 4.8}</span>
+                        </span>
+                      </td>
+
+                      {/* Units Sold */}
+                      <td className="px-6 py-4 text-xs font-bold text-slate-900 text-center">
+                        {product.sales ?? 0}
+                      </td>
+
+                      {/* Management Actions */}
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button 
@@ -289,10 +292,10 @@ export default function VendorProductsPage() {
                             className="bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 text-xs font-bold px-3 py-1.5 rounded-lg transition"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleOpenModal(product);
+                              setSelectedProduct(product);
                             }}
                           >
-                            👁️ View / Edit
+                            👁️ Open
                           </button>
                           <button 
                             type="button"
@@ -313,18 +316,18 @@ export default function VendorProductsPage() {
 
       </div>
 
-      {/* Expanded Interactive Product Modal */}
+      {/* Expanded Wide Product Detail Modal */}
       {selectedProduct && (
         <div 
           className="fixed inset-0 z-[999] bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto"
-          onClick={handleCloseModal}
+          onClick={() => setSelectedProduct(null)}
         >
           <div 
             className="bg-white w-full max-w-5xl rounded-3xl overflow-hidden shadow-2xl border border-slate-200 flex flex-col md:flex-row my-auto max-h-[90vh] relative"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Image Section */}
-            <div className="md:w-1/2 bg-slate-950 relative min-h-[280px] md:min-h-[480px] flex items-center justify-center p-6 shrink-0">
+            <div className="md:w-1/2 bg-slate-950 relative min-h-[300px] md:min-h-[480px] flex items-center justify-center p-6 shrink-0">
               {selectedProduct.image_url?.startsWith('http') ? (
                 <img
                   src={selectedProduct.image_url}
@@ -335,198 +338,98 @@ export default function VendorProductsPage() {
                 <span className="text-8xl">{selectedProduct.image_url || '📦'}</span>
               )}
 
+              {/* Mobile Close Button */}
               <button
                 type="button"
-                onClick={handleCloseModal}
+                onClick={() => setSelectedProduct(null)}
+                aria-label="Close product view"
                 className="md:hidden absolute top-4 right-4 bg-white/20 hover:bg-white/40 text-white w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold backdrop-blur-sm transition"
               >
                 ✕
               </button>
             </div>
 
-            {/* Modal Content Details / Edit Form */}
+            {/* Modal Content Details */}
             <div className="md:w-1/2 p-6 md:p-8 flex flex-col justify-between overflow-y-auto bg-white">
               <div>
+                {/* Header Category & Desktop Close */}
                 <div className="flex justify-between items-center mb-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-extrabold text-emerald-700 uppercase tracking-wider bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
-                      {selectedProduct.category}
-                    </span>
-                    {isEditing && (
-                      <span className="text-[10px] font-extrabold text-amber-700 uppercase tracking-wider bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
-                        Editing Mode
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {!isEditing && (
-                      <button
-                        type="button"
-                        onClick={() => setIsEditing(true)}
-                        className="bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold px-3 py-1.5 rounded-lg transition"
-                      >
-                        ✏️ Edit Item
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={handleCloseModal}
-                      className="hidden md:flex text-slate-400 hover:text-slate-900 text-sm font-bold w-8 h-8 items-center justify-center rounded-full hover:bg-slate-100 transition"
-                    >
-                      ✕
-                    </button>
-                  </div>
+                  <span className="text-[10px] font-extrabold text-emerald-700 uppercase tracking-wider bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
+                    {selectedProduct.category}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedProduct(null)}
+                    aria-label="Close dialog"
+                    className="hidden md:flex text-slate-400 hover:text-slate-900 text-sm font-bold w-8 h-8 items-center justify-center rounded-full hover:bg-slate-100 transition"
+                  >
+                    ✕
+                  </button>
                 </div>
 
-                <h2 className="text-2xl font-black text-slate-900 leading-tight mb-4">
+                {/* Product Title */}
+                <h2 className="text-2xl md:text-3xl font-black text-slate-900 leading-tight mb-4">
                   {selectedProduct.title || selectedProduct.name}
                 </h2>
 
-                {/* EDIT FORM VIEW */}
-                {isEditing ? (
-                  <form id="edit-product-form" onSubmit={handleSaveProduct} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-3">
-                      {/* Price Field */}
-                      <div>
-                        <label className="block text-[10px] font-extrabold uppercase text-slate-500 mb-1">
-                          Price (₦)
-                        </label>
-                        <input
-                          type="number"
-                          required
-                          min="0"
-                          value={editForm.price}
-                          onChange={(e) => setEditForm({ ...editForm, price: Number(e.target.value) })}
-                          className="w-full text-sm font-bold text-slate-900 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                        />
-                      </div>
+                {/* Vendor Info & Rating */}
+                <div className="bg-slate-50 border border-slate-200/70 rounded-2xl p-4 mb-5 flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] font-extrabold uppercase text-slate-400">Vendor</p>
+                    <p className="text-xs font-bold text-slate-800">
+                      {selectedProduct.vendor_name || 'Verified Cooperative Partner'}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <div className="flex items-center justify-end gap-1 text-xs font-black text-slate-900">
+                      <span className="text-amber-400 text-base">★</span>
+                      <span>{selectedProduct.vendor_rating || 4.8} / 5.0</span>
+                    </div>
+                    <span className="text-[9px] font-bold text-emerald-600">Top Rated Seller</span>
+                  </div>
+                </div>
 
-                      {/* Stock Field */}
-                      <div>
-                        <label className="block text-[10px] font-extrabold uppercase text-slate-500 mb-1">
-                          Available Stock
-                        </label>
-                        <input
-                          type="number"
-                          required
-                          min="0"
-                          value={editForm.stock}
-                          onChange={(e) => setEditForm({ ...editForm, stock: Number(e.target.value) })}
-                          className="w-full text-sm font-bold text-slate-900 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                        />
-                      </div>
-                    </div>
+                {/* Price & Stats */}
+                <div className="grid grid-cols-2 gap-3 mb-5">
+                  <div className="bg-emerald-50/50 border border-emerald-100 p-4 rounded-2xl">
+                    <p className="text-[10px] font-extrabold uppercase text-emerald-800">Selling Price</p>
+                    <p className="text-2xl font-black text-emerald-950">
+                      ₦{selectedProduct.price?.toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl">
+                    <p className="text-[10px] font-extrabold uppercase text-slate-400">Units Sold</p>
+                    <p className="text-2xl font-black text-slate-900">
+                      {selectedProduct.sales || 0}
+                    </p>
+                  </div>
+                </div>
 
-                    {/* Category Selection */}
-                    <div>
-                      <label className="block text-[10px] font-extrabold uppercase text-slate-500 mb-1">
-                        Category
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={editForm.category}
-                        onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
-                        className="w-full text-xs font-semibold text-slate-900 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                      />
-                    </div>
-
-                    {/* Description */}
-                    <div>
-                      <label className="block text-[10px] font-extrabold uppercase text-slate-500 mb-1">
-                        Description
-                      </label>
-                      <textarea
-                        rows={4}
-                        value={editForm.description}
-                        onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                        className="w-full text-xs text-slate-800 bg-slate-50 border border-slate-200 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                      />
-                    </div>
-                  </form>
-                ) : (
-                  /* READ ONLY VIEW */
-                  <>
-                    <div className="bg-slate-50 border border-slate-200/70 rounded-2xl p-4 mb-5 flex items-center justify-between">
-                      <div>
-                        <p className="text-[10px] font-extrabold uppercase text-slate-400">Vendor</p>
-                        <p className="text-xs font-bold text-slate-800">
-                          {selectedProduct.vendor_name || 'Verified Cooperative Partner'}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <div className="flex items-center justify-end gap-1 text-xs font-black text-slate-900">
-                          <span className="text-amber-400 text-base">★</span>
-                          <span>{selectedProduct.vendor_rating || 4.8} / 5.0</span>
-                        </div>
-                        <span className="text-[9px] font-bold text-emerald-600">Top Rated Seller</span>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3 mb-5">
-                      <div className="bg-emerald-50/50 border border-emerald-100 p-4 rounded-2xl">
-                        <p className="text-[10px] font-extrabold uppercase text-emerald-800">Selling Price</p>
-                        <p className="text-2xl font-black text-emerald-950">
-                          ₦{selectedProduct.price?.toLocaleString()}
-                        </p>
-                      </div>
-                      <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl">
-                        <p className="text-[10px] font-extrabold uppercase text-slate-400">In Stock</p>
-                        <p className="text-2xl font-black text-slate-900">
-                          {selectedProduct.stock ?? 1} units
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="mb-6">
-                      <p className="text-[10px] font-extrabold uppercase text-slate-400 mb-1.5">Description</p>
-                      <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-line bg-slate-50/50 p-4 rounded-2xl border border-slate-100 max-h-48 overflow-y-auto">
-                        {selectedProduct.description || 'No detailed description provided for this product.'}
-                      </p>
-                    </div>
-                  </>
-                )}
+                {/* Description */}
+                <div className="mb-6">
+                  <p className="text-[10px] font-extrabold uppercase text-slate-400 mb-1.5">Description</p>
+                  <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-line bg-slate-50/50 p-4 rounded-2xl border border-slate-100 max-h-48 overflow-y-auto">
+                    {selectedProduct.description || 'No detailed description provided for this product.'}
+                  </p>
+                </div>
               </div>
 
               {/* Bottom Actions */}
               <div className="flex gap-3 pt-4 border-t border-slate-100">
-                {isEditing ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => setIsEditing(false)}
-                      className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      form="edit-product-form"
-                      disabled={isSaving}
-                      className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition disabled:opacity-50"
-                    >
-                      {isSaving ? 'Saving...' : 'Save Changes'}
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      onClick={handleCloseModal}
-                      className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition"
-                    >
-                      Close
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => handleDelete(e, selectedProduct.id)}
-                      className="py-3 px-5 bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 rounded-xl text-xs font-bold transition"
-                    >
-                      Delete Item
-                    </button>
-                  </>
-                )}
+                <button
+                  type="button"
+                  onClick={() => setSelectedProduct(null)}
+                  className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition"
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => handleDelete(e, selectedProduct.id)}
+                  className="py-3 px-5 bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 rounded-xl text-xs font-bold transition"
+                >
+                  Delete Item
+                </button>
               </div>
             </div>
           </div>
