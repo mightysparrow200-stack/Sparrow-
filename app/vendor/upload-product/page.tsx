@@ -1,97 +1,133 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { useCoOp } from '../../CoOpState'; // Adjusted import path to reach your State hook
-import { supabase } from '@/lib/supabase'; // Connected directly to your lib/supabase.ts file
+import { useCoOp } from '../../CoOpState';
+import { supabase } from '@/lib/supabase';
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 export default function VendorUploadPage() {
   const context = useCoOp();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [formData, setFormData] = useState({
     name: '',
     price: '',
     category: '🌾 Groceries & Provisions',
     description: '',
   });
-  
+
   // Image Upload State
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Revoke object URL on unmount or preview change to avoid memory leaks
+  useEffect(() => {
+    return () => {
+      if (imagePreview) {
+        URL.revokeObjectURL(imagePreview);
+      }
+    };
+  }, [imagePreview]);
 
   if (!context) return null;
   const { addVendorProduct } = context;
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  // Handle local image file selection
+  // Handle local image file selection with validation
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setErrorMsg('Please upload a valid image file (PNG, JPG, WEBP).');
+      return;
     }
+
+    if (file.size > MAX_FILE_SIZE) {
+      setErrorMsg('File size exceeds the 5MB limit.');
+      return;
+    }
+
+    setErrorMsg(null);
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
   };
 
   // Remove selected image preview
   const handleRemoveImage = () => {
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
     setImageFile(null);
     setImagePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setSuccess(false);
+    setErrorMsg(null);
 
     let imageUrl = '📦'; // Fallback if no photo is selected
 
     // 1. Upload Image to Supabase Storage (if selected)
     if (imageFile) {
       try {
-        const filePath = `products/${Date.now()}_${imageFile.name.replace(/\s+/g, '_')}`;
+        const fileExt = imageFile.name.split('.').pop();
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
+        const filePath = `products/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
-          .from('product-images') // Make sure this bucket exists in your Supabase Dashboard
+          .from('product-images')
           .upload(filePath, imageFile);
 
         if (uploadError) {
-          throw new Error(uploadError.message);
+          throw uploadError;
         }
 
-        // Retrieve public URL for rendered output
+        // Retrieve public URL
         const { data: urlData } = supabase.storage
           .from('product-images')
           .getPublicUrl(filePath);
 
         imageUrl = urlData.publicUrl;
       } catch (err: any) {
-        alert(`Image upload failed: ${err.message || err}`);
+        setErrorMsg(err.message || 'Image upload failed. Please try again.');
         setIsSubmitting(false);
         return;
       }
     }
 
     // 2. Add product to context state
-    addVendorProduct({
-      name: formData.name,
-      category: formData.category,
-      price: parseFloat(formData.price),
-      desc: formData.description,
-      img: imageUrl,
-    });
+    try {
+      addVendorProduct({
+        name: formData.name.trim(),
+        category: formData.category,
+        price: parseFloat(formData.price),
+        desc: formData.description.trim(),
+        img: imageUrl,
+      });
 
-    setIsSubmitting(false);
-    setSuccess(true);
-    
-    // Reset Form & Image State
-    setFormData({ name: '', price: '', category: '🌾 Groceries & Provisions', description: '' });
-    setImageFile(null);
-    setImagePreview(null);
+      setSuccess(true);
+      
+      // Reset Form & Image State
+      setFormData({ name: '', price: '', category: '🌾 Groceries & Provisions', description: '' });
+      handleRemoveImage();
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to list product.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -111,7 +147,7 @@ export default function VendorUploadPage() {
           </p>
         </div>
 
-        {/* --- DIRECT PORTAL NAVIGATION LINKS --- */}
+        {/* Navigation Links */}
         <div className="flex flex-wrap gap-2 mb-8 bg-white border border-slate-100 p-2 rounded-2xl shadow-sm">
           <Link 
             href="/vendor/products" 
@@ -121,6 +157,7 @@ export default function VendorUploadPage() {
           </Link>
           
           <button 
+            type="button"
             disabled 
             className="flex-1 text-center py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold cursor-default"
           >
@@ -143,6 +180,16 @@ export default function VendorUploadPage() {
               <div>
                 <h4 className="text-xs font-bold text-emerald-950">Product listed successfully!</h4>
                 <p className="text-[10px] text-emerald-700">It is now live and available in the active shop list.</p>
+              </div>
+            </div>
+          )}
+
+          {errorMsg && (
+            <div className="mb-6 p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3">
+              <span className="text-xl">⚠️</span>
+              <div>
+                <h4 className="text-xs font-bold text-rose-950">Upload Failed</h4>
+                <p className="text-[10px] text-rose-700">{errorMsg}</p>
               </div>
             </div>
           )}
@@ -178,6 +225,7 @@ export default function VendorUploadPage() {
                     <button
                       type="button"
                       onClick={handleRemoveImage}
+                      aria-label="Remove photo preview"
                       className="absolute top-1 right-1 bg-slate-900/80 hover:bg-slate-900 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] transition"
                     >
                       ✕
@@ -191,8 +239,9 @@ export default function VendorUploadPage() {
                       <p className="text-[10px] text-slate-400 mt-0.5">PNG, JPG, or WEBP (MAX. 5MB)</p>
                     </div>
                     <input 
+                      ref={fileInputRef}
                       type="file" 
-                      accept="image/*" 
+                      accept="image/png, image/jpeg, image/webp" 
                       onChange={handleImageChange} 
                       className="hidden" 
                     />
@@ -212,6 +261,8 @@ export default function VendorUploadPage() {
                   type="number"
                   id="price"
                   name="price"
+                  min="0"
+                  step="0.01"
                   required
                   value={formData.price}
                   onChange={handleChange}
@@ -260,8 +311,8 @@ export default function VendorUploadPage() {
             {/* Submit Actions */}
             <div className="flex items-center gap-3 pt-2">
               <Link
-                href="/vendor/inventory"
-                className="flex-1 py-3 border border-slate-200 text-slate-750 text-center rounded-xl text-xs font-bold hover:bg-slate-50 transition"
+                href="/vendor/products"
+                className="flex-1 py-3 border border-slate-200 text-slate-700 text-center rounded-xl text-xs font-bold hover:bg-slate-50 transition"
               >
                 View Inventory
               </Link>
@@ -286,4 +337,4 @@ export default function VendorUploadPage() {
       </div>
     </main>
   );
-          }
+}
