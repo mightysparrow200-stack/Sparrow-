@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 
 export default function ProfilePage() {
@@ -100,15 +99,15 @@ export default function ProfilePage() {
 
       if (error) throw error;
 
-      // 1. Immediately update local role state
+      // 1. Update local role state
       setRole('vendor');
 
-      // 2. Refresh active session context in Supabase client
+      // 2. Refresh active session context
       await supabase.auth.refreshSession();
 
       setProfileMsg({ 
         type: 'success', 
-        text: 'Congratulations! Your account has been upgraded to Vendor status. You can now access the Vendor Dashboard.' 
+        text: 'Congratulations! Your account has been upgraded to Vendor status. Click "Go to Vendor Dashboard" to enter.' 
       });
     } catch (err: any) {
       setProfileMsg({ 
@@ -314,12 +313,12 @@ export default function ProfilePage() {
                 <p className="text-xs text-amber-900/80 mb-3">
                   You are an active Vendor! Access your product inventory and sales dashboard.
                 </p>
-                <Link
+                <a
                   href="/vendor"
-                  className="block w-full py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold text-center rounded-xl transition shadow-2xs"
+                  className="block w-full py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold text-center rounded-xl transition shadow-2xs"
                 >
                   Go to Vendor Dashboard →
-                </Link>
+                </a>
               </div>
             ) : (
               <div>
@@ -330,7 +329,7 @@ export default function ProfilePage() {
                   type="button"
                   onClick={handleUpgradeToVendor}
                   disabled={upgradingRole}
-                  className="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition shadow-2xs cursor-pointer disabled:opacity-50"
+                  className="w-full py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition shadow-2xs cursor-pointer disabled:opacity-50"
                 >
                   {upgradingRole ? 'Upgrading...' : 'Upgrade to Vendor Account'}
                 </button>
