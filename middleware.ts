@@ -54,6 +54,21 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  // 3. Vendor Route Check: Block non-vendors from accessing /vendor routes
+  if (user && url.pathname.startsWith('/vendor')) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    // If account role is not vendor, redirect them back to /profile
+    if (!profile || profile.role !== 'vendor') {
+      url.pathname = '/profile'
+      return NextResponse.redirect(url)
+    }
+  }
+
   return supabaseResponse
 }
 
