@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
 export default function ProfilePage() {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
   const [updatingPassword, setUpdatingPassword] = useState(false);
@@ -35,7 +37,7 @@ export default function ProfilePage() {
         const { data: { user } } = await supabase.auth.getUser();
 
         if (!user) {
-          window.location.href = '/login';
+          router.push('/login');
           return;
         }
 
@@ -65,7 +67,17 @@ export default function ProfilePage() {
     }
 
     loadProfile();
-  }, []);
+  }, [router]);
+
+  // Handle Sign Out
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      router.push('/login');
+    } catch (err) {
+      console.error('Error signing out:', err);
+    }
+  };
 
   // Upload image to Supabase Storage 'avatars' bucket
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -106,7 +118,6 @@ export default function ProfilePage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Passing email solves the "null value in column 'email'" NOT NULL constraint
       const { error } = await supabase
         .from('profiles')
         .upsert({
@@ -176,23 +187,35 @@ export default function ProfilePage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 font-sans">
-      <div className="mb-8">
-        <h1 className="text-2xl font-black text-slate-900">Account & Profile Settings</h1>
-        <p className="text-xs text-slate-500 mt-1">Manage your alumni co-op information, contact details, and security.</p>
+      {/* HEADER WITH SIGN OUT BUTTON */}
+      <div className="mb-8 flex items-center justify-between gap-4 border-b border-slate-200 pb-6">
+        <div>
+          <h1 className="text-2xl font-black text-slate-900">Account & Profile Settings</h1>
+          <p className="text-xs text-slate-500 mt-1">Manage your alumni co-op information, contact details, and security.</p>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleSignOut}
+          className="flex items-center gap-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold px-4 py-2.5 rounded-xl border border-rose-200 transition cursor-pointer shadow-xs whitespace-nowrap"
+        >
+          <span>🚪</span>
+          <span>Sign Out</span>
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         
         {/* LEFT COLUMN: Avatar & Quick Summary */}
         <div className="md:col-span-1 space-y-4">
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 text-center shadow-sm">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 text-center shadow-xs">
             {/* AVATAR DISPLAY & UPLOAD */}
             <div className="relative w-24 h-24 mx-auto mb-4 group cursor-pointer">
               {avatarUrl ? (
                 <img
                   src={avatarUrl}
                   alt="Profile Avatar"
-                  className="w-24 h-24 rounded-full object-cover border-2 border-emerald-500 shadow-sm mx-auto"
+                  className="w-24 h-24 rounded-full object-cover border-2 border-emerald-500 shadow-xs mx-auto"
                 />
               ) : (
                 <div className="w-24 h-24 bg-emerald-100 text-emerald-800 rounded-full flex items-center justify-center text-3xl font-black border-2 border-emerald-200 mx-auto">
@@ -230,6 +253,14 @@ export default function ProfilePage() {
                 </span>
               )}
             </div>
+
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="mt-6 w-full py-2 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-700 text-xs font-bold rounded-xl transition cursor-pointer border border-slate-200 flex items-center justify-center gap-1.5"
+            >
+              <span>🚪</span> Sign Out
+            </button>
           </div>
         </div>
 
@@ -237,7 +268,7 @@ export default function ProfilePage() {
         <div className="md:col-span-2 space-y-6">
           
           {/* PERSONAL & CO-OP DETAILS FORM */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs">
             <h3 className="text-sm font-black text-slate-900 mb-4 flex items-center gap-2">
               <span>👤</span> Member Profile Details
             </h3>
@@ -276,7 +307,7 @@ export default function ProfilePage() {
                     placeholder="e.g. John Doe"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition"
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition"
                   />
                 </div>
 
@@ -289,7 +320,7 @@ export default function ProfilePage() {
                     placeholder="+234..."
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition"
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition"
                   />
                 </div>
               </div>
@@ -304,7 +335,7 @@ export default function ProfilePage() {
                     placeholder="e.g. Computer Science"
                     value={department}
                     onChange={(e) => setDepartment(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition"
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition"
                   />
                 </div>
 
@@ -317,7 +348,7 @@ export default function ProfilePage() {
                     placeholder="e.g. 2020"
                     value={graduationYear}
                     onChange={(e) => setGraduationYear(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition"
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition"
                   />
                 </div>
               </div>
@@ -331,14 +362,14 @@ export default function ProfilePage() {
                   placeholder="Enter street address..."
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition resize-none"
+                  className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition resize-none"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={savingProfile}
-                className="py-2.5 px-5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm transition disabled:opacity-50"
+                className="py-2.5 px-5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition disabled:opacity-50 cursor-pointer"
               >
                 {savingProfile ? 'Saving...' : 'Save Changes'}
               </button>
@@ -346,7 +377,7 @@ export default function ProfilePage() {
           </div>
 
           {/* CHANGE PASSWORD FORM */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs">
             <h3 className="text-sm font-black text-slate-900 mb-4 flex items-center gap-2">
               <span>🔒</span> Security & Password
             </h3>
@@ -373,7 +404,7 @@ export default function ProfilePage() {
                     placeholder="••••••••"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition"
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition"
                   />
                 </div>
 
@@ -387,7 +418,7 @@ export default function ProfilePage() {
                     placeholder="••••••••"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition"
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition"
                   />
                 </div>
               </div>
@@ -395,7 +426,7 @@ export default function ProfilePage() {
               <button
                 type="submit"
                 disabled={updatingPassword}
-                className="py-2.5 px-5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-sm transition disabled:opacity-50"
+                className="py-2.5 px-5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition disabled:opacity-50 cursor-pointer"
               >
                 {updatingPassword ? 'Updating...' : 'Update Password'}
               </button>
