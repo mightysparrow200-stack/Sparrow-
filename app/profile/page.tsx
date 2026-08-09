@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 
 export default function ProfilePage() {
@@ -81,7 +82,6 @@ export default function ProfilePage() {
     }
   };
 
-  // Fixed: Uses .update() so it only touches the role column and avoids NOT NULL constraint errors
   const handleUpgradeToVendor = async () => {
     if (!confirm('Are you sure you want to upgrade your account to a Vendor? You will get access to the Vendor Portal to list products.')) {
       return;
@@ -100,10 +100,21 @@ export default function ProfilePage() {
 
       if (error) throw error;
 
+      // 1. Immediately update local role state
       setRole('vendor');
-      setProfileMsg({ type: 'success', text: 'Congratulations! Your account has been upgraded to Vendor status.' });
+
+      // 2. Refresh active session context in Supabase client
+      await supabase.auth.refreshSession();
+
+      setProfileMsg({ 
+        type: 'success', 
+        text: 'Congratulations! Your account has been upgraded to Vendor status. You can now access the Vendor Dashboard.' 
+      });
     } catch (err: any) {
-      setProfileMsg({ type: 'error', text: err.message || 'Failed to upgrade account role.' });
+      setProfileMsg({ 
+        type: 'error', 
+        text: err.message || 'Failed to upgrade account role.' 
+      });
     } finally {
       setUpgradingRole(false);
     }
@@ -303,12 +314,12 @@ export default function ProfilePage() {
                 <p className="text-xs text-amber-900/80 mb-3">
                   You are an active Vendor! Access your product inventory and sales dashboard.
                 </p>
-                <a
+                <Link
                   href="/vendor"
                   className="block w-full py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold text-center rounded-xl transition shadow-2xs"
                 >
                   Go to Vendor Dashboard →
-                </a>
+                </Link>
               </div>
             ) : (
               <div>
