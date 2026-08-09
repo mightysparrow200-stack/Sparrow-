@@ -10,8 +10,10 @@ export default function ProfilePage() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [updatingPassword, setUpdatingPassword] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [upgradingRole, setUpgradingRole] = useState(false);
 
-  // Auth info
+  // Auth & Profile info
+  const [userId, setUserId] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('member');
 
@@ -41,9 +43,10 @@ export default function ProfilePage() {
           return;
         }
 
+        setUserId(user.id);
         setEmail(user.email || '');
 
-        // Fetch details from profiles table safely
+        // Fetch details from profiles table
         const { data: profile } = await supabase
           .from('profiles')
           .select('*')
@@ -69,7 +72,6 @@ export default function ProfilePage() {
     loadProfile();
   }, [router]);
 
-  // Handle Sign Out
   const handleSignOut = async () => {
     try {
       await supabase.auth.signOut();
@@ -79,7 +81,35 @@ export default function ProfilePage() {
     }
   };
 
-  // Upload image to Supabase Storage 'avatars' bucket
+  // Handle Vendor Role Upgrade
+  const handleUpgradeToVendor = async () => {
+    if (!confirm('Are you sure you want to upgrade your account to a Vendor? You will get access to the Vendor Portal to list products.')) {
+      return;
+    }
+
+    setUpgradingRole(true);
+    setProfileMsg(null);
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({
+          id: userId,
+          email: email,
+          role: 'vendor',
+        });
+
+      if (error) throw error;
+
+      setRole('vendor');
+      setProfileMsg({ type: 'success', text: 'Congratulations! Your account has been upgraded to Vendor status.' });
+    } catch (err: any) {
+      setProfileMsg({ type: 'error', text: err.message || 'Failed to upgrade account role.' });
+    } finally {
+      setUpgradingRole(false);
+    }
+  };
+
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     try {
       setUploadingAvatar(true);
@@ -115,13 +145,10 @@ export default function ProfilePage() {
     setProfileMsg(null);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
       const { error } = await supabase
         .from('profiles')
         .upsert({
-          id: user.id,
+          id: userId,
           email: email, 
           full_name: fullName,
           phone: phone,
@@ -129,6 +156,7 @@ export default function ProfilePage() {
           department: department,
           graduation_year: graduationYear,
           address: address,
+          role: role,
         });
 
       if (error) throw error;
@@ -223,7 +251,6 @@ export default function ProfilePage() {
                 </div>
               )}
 
-              {/* OVERLAY BUTTON */}
               <label
                 htmlFor="avatar-upload"
                 className="absolute inset-0 bg-slate-900/60 rounded-full flex items-center justify-center text-white text-xs font-bold opacity-0 group-hover:opacity-100 transition cursor-pointer"
@@ -262,12 +289,50 @@ export default function ProfilePage() {
               <span>🚪</span> Sign Out
             </button>
           </div>
+
+          {/* VENDOR UPGRADE CARD */}
+          <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-5 shadow-xs">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-lg">🏪</span>
+              <h3 className="text-xs font-bold text-amber-950 uppercase tracking-wider">
+                {role === 'vendor' ? 'Vendor Portal' : 'Become a Vendor'}
+              </h3>
+            </div>
+
+            {role === 'vendor' ? (
+              <div>
+                <p className="text-xs text-amber-900/80 mb-3">
+                  You are an active Vendor! Access your product inventory and sales dashboard.
+                </p>
+                <a
+                  href="/vendor"
+                  className="block w-full py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold text-center rounded-xl transition shadow-2xs"
+                >
+                  Go to Vendor Dashboard →
+                </a>
+              </div>
+            ) : (
+              <div>
+                <p className="text-xs text-amber-900/80 mb-3">
+                  Sell your products or services directly on the Alumni Co-Op marketplace.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleUpgradeToVendor}
+                  disabled={upgradingRole}
+                  className="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition shadow-2xs cursor-pointer disabled:opacity-50"
+                >
+                  {upgradingRole ? 'Upgrading...' : 'Upgrade to Vendor Account'}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* RIGHT COLUMN: Profile Details & Password Forms */}
         <div className="md:col-span-2 space-y-6">
           
-          {/* PERSONAL & CO-OP DETAILS FORM */}
+          {/* PERSONAL DETAILS FORM */}
           <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs">
             <h3 className="text-sm font-black text-slate-900 mb-4 flex items-center gap-2">
               <span>👤</span> Member Profile Details
