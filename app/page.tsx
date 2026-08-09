@@ -23,16 +23,16 @@ export interface Product {
   is_verified?: boolean;
 }
 
-// Fixed pinned circular category shortcuts (Jumia-style)
+// Fixed pinned circular category shortcuts
 const PINNED_CATEGORIES = [
-  { id: 1, title: 'Supermarket', icon: '🛒', bg: 'bg-amber-100' },
-  { id: 2, title: 'Fashion', icon: '👕', bg: 'bg-rose-100' },
-  { id: 3, title: 'Computing', icon: '💻', bg: 'bg-blue-100' },
-  { id: 4, title: 'Phones & Tabs', icon: '📱', bg: 'bg-purple-100' },
+  { id: 1, title: 'Supermarket', icon: '🛒', bg: 'bg-emerald-50' },
+  { id: 2, title: 'Fashion', icon: '👕', bg: 'bg-rose-50' },
+  { id: 3, title: 'Computing', icon: '💻', bg: 'bg-blue-50' },
+  { id: 4, title: 'Phones & Tabs', icon: '📱', bg: 'bg-purple-50' },
   { id: 5, title: 'Electronics', icon: '📺', bg: 'bg-emerald-100' },
-  { id: 6, title: 'Home & Office', icon: '🏠', bg: 'bg-orange-100' },
-  { id: 7, title: 'Beauty', icon: '🧴', bg: 'bg-pink-100' },
-  { id: 8, title: 'Official Store', icon: '🏪', bg: 'bg-indigo-100' },
+  { id: 6, title: 'Home & Office', icon: '🏠', bg: 'bg-orange-50' },
+  { id: 7, title: 'Beauty', icon: '🧴', bg: 'bg-pink-50' },
+  { id: 8, title: 'Official Store', icon: '🏪', bg: 'bg-indigo-50' },
 ];
 
 export default function MarketplaceHomePage() {
@@ -57,8 +57,8 @@ export default function MarketplaceHomePage() {
         if (error) throw error;
 
         const formattedProducts: Product[] = (data || []).map((item) => {
-          const price = item.price || 0;
-          const originalPrice = item.original_price || Math.round(price * 1.25);
+          const price = Number(item.price) || 0;
+          const originalPrice = item.original_price ? Number(item.original_price) : Math.round(price * 1.25);
           const discount = item.discount_percentage || Math.round(((originalPrice - price) / originalPrice) * 100);
 
           return {
@@ -124,8 +124,8 @@ export default function MarketplaceHomePage() {
   return (
     <main className="min-h-screen bg-slate-100 font-sans pb-12 relative">
       
-      {/* 1. STICKY SEARCH BAR DIRECTLY UNDER NAVBAR */}
-      <section className="bg-amber-500 p-3 sticky top-14 z-30 shadow-xs">
+      {/* 1. SEARCH BAR - FIXED NON-OVERLAPPING RELATIVE POSITIONING */}
+      <section className="bg-emerald-700 p-3 shadow-sm relative z-10">
         <div className="max-w-5xl mx-auto flex items-center gap-2">
           <div className="relative flex-1">
             <span className="absolute left-3.5 top-2.5 text-slate-400 text-xs">🔍</span>
@@ -139,25 +139,25 @@ export default function MarketplaceHomePage() {
           </div>
           <button
             type="button"
-            className="bg-slate-900 text-white text-xs font-bold px-4 py-2.5 rounded-full hover:bg-slate-800 transition"
+            className="bg-amber-500 hover:bg-amber-600 text-slate-900 text-xs font-black px-4 py-2.5 rounded-full transition cursor-pointer shadow-xs"
           >
             Search
           </button>
         </div>
       </section>
 
-      <div className="max-w-5xl mx-auto space-y-4 px-3 sm:px-6 pt-3">
+      <div className="max-w-5xl mx-auto space-y-4 px-3 sm:px-6 pt-4">
 
         {/* 2. PROMOTIONAL HERO DEAL BANNER */}
-        <div className="bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 text-white rounded-2xl p-4 sm:p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="bg-gradient-to-r from-emerald-800 via-emerald-700 to-emerald-900 text-white rounded-2xl p-4 sm:p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-emerald-600/30">
           <div>
-            <span className="text-[10px] font-extrabold text-amber-900 bg-amber-200/90 px-2.5 py-0.5 rounded-md uppercase tracking-wider">
+            <span className="text-[10px] font-extrabold text-amber-900 bg-amber-400 px-2.5 py-0.5 rounded-md uppercase tracking-wider">
               CoOp Official Store
             </span>
             <h1 className="text-xl sm:text-2xl font-black mt-1.5 leading-snug">
               Marketplace Deals & Alumni Specials
             </h1>
-            <p className="text-xs text-amber-100 mt-1">
+            <p className="text-xs text-emerald-100 mt-1">
               Verified quality products with fast nationwide shipping.
             </p>
           </div>
@@ -167,13 +167,13 @@ export default function MarketplaceHomePage() {
               setSelectedCategory('All');
               setSearchQuery('');
             }}
-            className="bg-slate-900 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-xs hover:bg-slate-800 transition whitespace-nowrap"
+            className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-extrabold text-xs px-4 py-2.5 rounded-xl shadow-xs transition whitespace-nowrap cursor-pointer"
           >
             Explore All Deals
           </button>
         </div>
 
-        {/* 3. PINNED CIRCULAR CATEGORIES (Jumia Style) */}
+        {/* 3. PINNED CIRCULAR CATEGORIES */}
         <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs">
           <h2 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider mb-3">
             Quick Categories
@@ -192,10 +192,10 @@ export default function MarketplaceHomePage() {
                 }}
                 className="flex flex-col items-center group focus:outline-hidden cursor-pointer"
               >
-                <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full ${cat.bg} border-2 border-amber-300 flex items-center justify-center text-xl sm:text-2xl shadow-2xs group-hover:scale-105 transition`}>
+                <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full ${cat.bg} border-2 border-emerald-200 flex items-center justify-center text-xl sm:text-2xl shadow-2xs group-hover:scale-105 group-hover:border-emerald-500 transition`}>
                   {cat.icon}
                 </div>
-                <span className="text-[10px] font-bold text-slate-700 mt-1.5 line-clamp-1 group-hover:text-amber-600">
+                <span className="text-[10px] font-bold text-slate-700 mt-1.5 line-clamp-1 group-hover:text-emerald-700">
                   {cat.title}
                 </span>
               </button>
@@ -203,7 +203,7 @@ export default function MarketplaceHomePage() {
           </div>
         </div>
 
-        {/* 4. DYNAMIC CATEGORY FILTER CHIPS (From Supabase) */}
+        {/* 4. DYNAMIC CATEGORY FILTER CHIPS */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
           {dynamicCategories.map((cat) => (
             <button
@@ -212,7 +212,7 @@ export default function MarketplaceHomePage() {
               onClick={() => setSelectedCategory(cat)}
               className={`text-xs font-bold px-3.5 py-1.5 rounded-lg transition whitespace-nowrap cursor-pointer ${
                 selectedCategory.toLowerCase() === cat.toLowerCase()
-                  ? 'bg-amber-500 text-white shadow-xs'
+                  ? 'bg-emerald-700 text-white shadow-xs'
                   : 'bg-white text-slate-700 border border-slate-200/80 hover:bg-slate-50'
               }`}
             >
@@ -224,7 +224,7 @@ export default function MarketplaceHomePage() {
         {/* 5. PRODUCT MARKETPLACE GRID */}
         {isLoading ? (
           <div className="bg-white rounded-2xl p-12 text-center shadow-xs">
-            <div className="w-6 h-6 border-2 border-slate-300 border-t-amber-500 rounded-full animate-spin mx-auto mb-3" />
+            <div className="w-6 h-6 border-2 border-slate-300 border-t-emerald-600 rounded-full animate-spin mx-auto mb-3" />
             <p className="text-xs text-slate-500 font-medium">Loading marketplace products...</p>
           </div>
         ) : filteredProducts.length === 0 ? (
@@ -256,10 +256,10 @@ export default function MarketplaceHomePage() {
                     )}
                   </div>
 
-                  <span className="text-[9px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded inline-block mb-1">
+                  <span className="text-[9px] font-bold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded inline-block mb-1">
                     Official Store
                   </span>
-                  <h3 className="text-xs font-semibold text-slate-800 line-clamp-2 mb-1 group-hover:text-amber-600 transition">
+                  <h3 className="text-xs font-semibold text-slate-800 line-clamp-2 mb-1 group-hover:text-emerald-700 transition">
                     {product.title}
                   </h3>
                 </div>
@@ -275,7 +275,7 @@ export default function MarketplaceHomePage() {
                           ₦{product.original_price.toLocaleString()}
                         </span>
                         {product.discount_percentage && (
-                          <span className="text-amber-600 bg-amber-50 font-bold px-1 rounded">
+                          <span className="text-amber-700 bg-amber-50 font-bold px-1 rounded">
                             -{product.discount_percentage}%
                           </span>
                         )}
@@ -296,7 +296,7 @@ export default function MarketplaceHomePage() {
                       className={`text-[10px] font-bold px-2.5 py-1 rounded transition cursor-pointer ${
                         addedId === product.id
                           ? 'bg-slate-900 text-white'
-                          : 'bg-amber-500 text-white hover:bg-amber-600'
+                          : 'bg-emerald-700 hover:bg-emerald-800 text-white'
                       }`}
                     >
                       {addedId === product.id ? 'Added ✓' : 'Add'}
@@ -356,14 +356,14 @@ export default function MarketplaceHomePage() {
 
                 {/* Badge & Title */}
                 <div>
-                  <span className="bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider inline-block mb-1.5">
+                  <span className="bg-emerald-700 text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider inline-block mb-1.5">
                     Official Store
                   </span>
                   <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-snug">
                     {selectedProduct.title}
                   </h2>
                   <p className="text-xs text-slate-500 mt-1">
-                    Brand: <span className="text-blue-600 font-semibold">{selectedProduct.vendor_name}</span>
+                    Brand: <span className="text-emerald-700 font-semibold">{selectedProduct.vendor_name}</span>
                   </p>
                 </div>
 
@@ -420,7 +420,7 @@ export default function MarketplaceHomePage() {
                 <button
                   type="button"
                   onClick={() => handleBuyNow(selectedProduct)}
-                  className="flex-1 h-11 bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-xs transition flex items-center justify-center gap-2 cursor-pointer"
+                  className="flex-1 h-11 bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-xs transition flex items-center justify-center gap-2 cursor-pointer"
                 >
                   🛒 {addedId === selectedProduct.id ? 'Added to Cart!' : 'Add to cart'}
                 </button>
