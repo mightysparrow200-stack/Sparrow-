@@ -81,7 +81,7 @@ export default function ProfilePage() {
     }
   };
 
-  // Handle Vendor Role Upgrade
+  // Fixed: Uses .update() so it only touches the role column and avoids NOT NULL constraint errors
   const handleUpgradeToVendor = async () => {
     if (!confirm('Are you sure you want to upgrade your account to a Vendor? You will get access to the Vendor Portal to list products.')) {
       return;
@@ -93,11 +93,10 @@ export default function ProfilePage() {
     try {
       const { error } = await supabase
         .from('profiles')
-        .upsert({
-          id: userId,
-          email: email,
+        .update({
           role: 'vendor',
-        });
+        })
+        .eq('id', userId);
 
       if (error) throw error;
 
