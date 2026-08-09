@@ -90,26 +90,52 @@ export default function ProfilePage() {
     setProfileMsg(null);
 
     try {
-      // 1. Update user role in Supabase database
-      const { error } = await supabase
+      // 1. Fetch authenticated user directly from Supabase session
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        alert('Authentication session expired. Please sign out and sign in again.');
+        setUpgradingRole(false);
+        return;
+      }
+
+      // 2. Perform direct update on profiles table
+      const { data, error: updateError } = await supabase
         .from('profiles')
-        .update({
-          role: 'vendor',
-        })
-        .eq('id', userId);
+        .update({ role: 'vendor' })
+        .eq('id', user.id)
+        .select();
 
-      if (error) throw error;
+      if (updateError) {
+        console.error('Supabase update error:', updateError);
+        alert(`Upgrade Failed: ${updateError.message} (Code: ${updateError.code})`);
+        setUpgradingRole(false);
+        return;
+      }
 
-      // 2. Refresh local session context
+      // 3. If no existing profile row was returned, upsert a new record
+      if (!data || data.length === 0) {
+        const { error: upsertError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: user.id,
+            email: user.email,
+            full_name: fullName || user.user_metadata?.full_name || '',
+            role: 'vendor'
+          }, { onConflict: 'id' });
+
+        if (upsertError) {
+          alert(`Upsert Failed: ${upsertError.message}`);
+          setUpgradingRole(false);
+          return;
+        }
+      }
+
+      // 4. Force session refresh & navigate to Vendor Portal
       await supabase.auth.refreshSession();
-
-      // 3. Immediately redirect to Vendor Dashboard with a full page load
       window.location.href = '/vendor';
     } catch (err: any) {
-      setProfileMsg({ 
-        type: 'error', 
-        text: err.message || 'Failed to upgrade account role.' 
-      });
+      alert(`Unexpected error: ${err.message || 'Unknown error'}`);
       setUpgradingRole(false);
     }
   };
