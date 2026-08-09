@@ -90,6 +90,7 @@ export default function ProfilePage() {
     setProfileMsg(null);
 
     try {
+      // 1. Update user role in Supabase database
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -99,22 +100,16 @@ export default function ProfilePage() {
 
       if (error) throw error;
 
-      // 1. Update local role state
-      setRole('vendor');
-
-      // 2. Refresh active session context
+      // 2. Refresh local session context
       await supabase.auth.refreshSession();
 
-      setProfileMsg({ 
-        type: 'success', 
-        text: 'Congratulations! Your account has been upgraded to Vendor status. Click "Go to Vendor Dashboard" to enter.' 
-      });
+      // 3. Immediately redirect to Vendor Dashboard with a full page load
+      window.location.href = '/vendor';
     } catch (err: any) {
       setProfileMsg({ 
         type: 'error', 
         text: err.message || 'Failed to upgrade account role.' 
       });
-    } finally {
       setUpgradingRole(false);
     }
   };
@@ -331,7 +326,7 @@ export default function ProfilePage() {
                   disabled={upgradingRole}
                   className="w-full py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition shadow-2xs cursor-pointer disabled:opacity-50"
                 >
-                  {upgradingRole ? 'Upgrading...' : 'Upgrade to Vendor Account'}
+                  {upgradingRole ? 'Upgrading & Redirecting...' : 'Upgrade to Vendor Account'}
                 </button>
               </div>
             )}
