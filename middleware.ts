@@ -9,7 +9,6 @@ export async function middleware(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  // If env vars are missing, skip auth check to prevent hanging
   if (!supabaseUrl || !supabaseAnonKey) {
     return supabaseResponse
   }
@@ -22,7 +21,7 @@ export async function middleware(request: NextRequest) {
         getAll() {
           return request.cookies.getAll()
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           )
@@ -43,7 +42,6 @@ export async function middleware(request: NextRequest) {
     url.pathname.startsWith(path)
   )
 
-  // Fast check with 1-second fallback timeout
   try {
     const userPromise = supabase.auth.getUser()
     const timeoutPromise = new Promise((_, reject) =>
@@ -63,7 +61,7 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url)
     }
   } catch (err) {
-    // If auth times out, continue rendering page without blocking
+    // Auth timeout fallback to allow page load
   }
 
   return supabaseResponse
